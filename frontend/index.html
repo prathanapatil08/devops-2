@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Leave Management System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+    <h1>Leave Management System</h1>
+
+    <form id="leaveForm">
+        <input type="text" id="name" placeholder="Employee Name" required>
+        <input type="date" id="fromDate" required>
+        <input type="date" id="toDate" required>
+        <textarea id="reason" placeholder="Reason"></textarea>
+        <button type="submit">Apply Leave</button>
+    </form>
+
+    <h2>Leave Requests</h2>
+    <ul id="leaveList"></ul>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
