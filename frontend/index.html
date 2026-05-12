@@ -2,24 +2,47 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Leave Management System</title>
+    <title>Leave Management System - Home</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
+<nav class="navbar">
+    <div class="nav-container">
+        <h2 class="nav-logo">LeaveMS</h2>
+        <ul class="nav-menu">
+            <li><a href="/" class="active">Home</a></li>
+            <li><a href="/apply">Apply Leave</a></li>
+            <li><a href="/dashboard">Dashboard</a></li>
+            <li><a href="/about">About</a></li>
+        </ul>
+    </div>
+</nav>
+
 <div class="container">
-    <h1>Leave Management System</h1>
+    <div class="hero">
+        <h1>Welcome to Leave Management System</h1>
+        <p>Manage your leave requests efficiently and transparently.</p>
+        <div class="hero-buttons">
+            <a href="/apply" class="btn-primary">Apply for Leave</a>
+            <a href="/dashboard" class="btn-secondary">View Dashboard</a>
+        </div>
+    </div>
 
-    <form id="leaveForm">
-        <input type="text" id="name" placeholder="Employee Name" required>
-        <input type="date" id="fromDate" required>
-        <input type="date" id="toDate" required>
-        <textarea id="reason" placeholder="Reason"></textarea>
-        <button type="submit">Apply Leave</button>
-    </form>
-
-    <h2>Leave Requests</h2>
-    <ul id="leaveList"></ul>
+    <div class="features">
+        <div class="feature-card">
+            <h3>Easy Application</h3>
+            <p>Submit leave requests with just a few clicks.</p>
+        </div>
+        <div class="feature-card">
+            <h3>Real-time Tracking</h3>
+            <p>Monitor the status of your leave applications.</p>
+        </div>
+        <div class="feature-card">
+            <h3>Admin Dashboard</h3>
+            <p>Administrators can approve or reject requests.</p>
+        </div>
+    </div>
 </div>
 
 <script src="script.js"></script>

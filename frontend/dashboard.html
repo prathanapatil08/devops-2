@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Leave Management System - Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="nav-container">
+        <h2 class="nav-logo">LeaveMS</h2>
+        <ul class="nav-menu">
+            <li><a href="/">Home</a></li>
+            <li><a href="/apply">Apply Leave</a></li>
+            <li><a href="/dashboard" class="active">Dashboard</a></li>
+            <li><a href="/about">About</a></li>
+        </ul>
+    </div>
+</nav>
+
+<div class="container">
+    <h1>Leave Dashboard</h1>
+
+    <div class="dashboard-stats">
+        <div class="stat-card">
+            <h3>Total Requests</h3>
+            <span id="totalRequests">0</span>
+        </div>
+        <div class="stat-card">
+            <h3>Pending</h3>
+            <span id="pendingRequests">0</span>
+        </div>
+        <div class="stat-card">
+            <h3>Approved</h3>
+            <span id="approvedRequests">0</span>
+        </div>
+        <div class="stat-card">
+            <h3>Rejected</h3>
+            <span id="rejectedRequests">0</span>
+        </div>
+    </div>
+
+    <h2>Leave Requests</h2>
+    <div class="filter-buttons">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="pending">Pending</button>
+        <button class="filter-btn" data-filter="approved">Approved</button>
+        <button class="filter-btn" data-filter="rejected">Rejected</button>
+    </div>
+
+    <ul id="leaveList" class="leave-list"></ul>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
