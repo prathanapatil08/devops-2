@@ -15,18 +15,24 @@ CORS(app)
 MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
 DB_NAME = os.getenv("DB_NAME", "devops_leave_management")
 
+# In-memory fallback storage
+in_memory_leaves = []
+
 try:
-    mongo_client = MongoClient(MONGODB_URI)
+    mongo_client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=5000)
     db = mongo_client[DB_NAME]
     leaves_collection = db["leaves"]
     # Create index on id field for faster queries
     leaves_collection.create_index("leave_id")
     print("✓ Connected to MongoDB")
+    use_mongodb = True
 except Exception as e:
-    print(f"✗ MongoDB connection failed: {e}")
+    print(f"⚠ MongoDB not available: {e}")
+    print("⚠ Using in-memory storage instead")
     mongo_client = None
     db = None
     leaves_collection = None
+    use_mongodb = False
 
 # Home Route
 @app.route("/")
@@ -59,7 +65,15 @@ def script():
 @app.route("/api/leave", methods=["GET"])
 def get_leaves():
     try:
-        leaves = list(leaves_collection.find({}, {"_id": 0}))
+        if use_mongodb:
+            leaves = list(leaves_collection.find({}, {"_id": 0}))
+        else:
+            # Add id field to in-memory leaves for frontend compatibility
+            leaves = []
+            for leave in in_memory_leaves:
+                leave_with_id = leave.copy()
+                leave_with_id["id"] = leave.get("id", str(leave["leave_id"]))
+                leaves.append(leave_with_id)
         return jsonify(leaves)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -69,20 +83,30 @@ def add_leave():
     try:
         data = request.get_json()
         
-        # Get the next leave_id
-        last_leave = leaves_collection.find_one(sort=[("leave_id", -1)])
-        next_id = (last_leave["leave_id"] + 1) if last_leave else 1
+        if use_mongodb:
+            # Get the next leave_id from MongoDB
+            last_leave = leaves_collection.find_one(sort=[("leave_id", -1)])
+            next_id = (last_leave["leave_id"] + 1) if last_leave else 1
+        else:
+            # Get the next leave_id from in-memory storage
+            next_id = (max([l["leave_id"] for l in in_memory_leaves]) + 1) if in_memory_leaves else 1
         
         leave = {
             "leave_id": next_id,
+            "id": str(next_id),  # Add id field for frontend compatibility
             "name": data["name"],
             "fromDate": data["fromDate"],
             "toDate": data["toDate"],
             "reason": data["reason"],
             "status": "pending"  # pending, approved, rejected
         }
-        result = leaves_collection.insert_one(leave)
-        leave["id"] = str(result.inserted_id)
+        
+        if use_mongodb:
+            result = leaves_collection.insert_one(leave)
+            leave["id"] = str(result.inserted_id)
+        else:
+            in_memory_leaves.append(leave)
+        
         return jsonify(leave), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -91,15 +115,23 @@ def add_leave():
 def update_leave(leave_id):
     try:
         data = request.get_json()
-        result = leaves_collection.find_one_and_update(
-            {"leave_id": leave_id},
-            {"$set": {"status": data.get("status")}},
-            return_document=True
-        )
-        if result:
-            result.pop("_id", None)
-            return jsonify(result)
-        return jsonify({"error": "Leave not found"}), 404
+        
+        if use_mongodb:
+            result = leaves_collection.find_one_and_update(
+                {"leave_id": leave_id},
+                {"$set": {"status": data.get("status")}},
+                return_document=True
+            )
+            if result:
+                result.pop("_id", None)
+                return jsonify(result)
+            return jsonify({"error": "Leave not found"}), 404
+        else:
+            for leave in in_memory_leaves:
+                if leave["leave_id"] == leave_id:
+                    leave["status"] = data.get("status", leave["status"])
+                    return jsonify(leave)
+            return jsonify({"error": "Leave not found"}), 404
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
