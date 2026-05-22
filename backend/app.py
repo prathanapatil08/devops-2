@@ -13,13 +13,13 @@ CORS(app)
 MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
 DB_NAME = os.getenv("DB_NAME", "devops_leave_management")
 
-# In-memory fallback storage
+# In-memory fallback
 in_memory_leaves = []
 
 try:
     mongo_client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=5000)
 
-    # Force connection test
+    # Test connection
     mongo_client.server_info()
 
     db = mongo_client[DB_NAME]
@@ -68,25 +68,52 @@ def about():
 
 @app.route("/style.css")
 def style():
+    return send_from_directory("../frontend", "style.css")
+
 # ---------------- JS ----------------
+
 @app.route("/script.js")
 def script():
+    return send_from_directory("../frontend", "script.js")
+
 # ---------------- SUBMIT LEAVE ----------------
+
 @app.route("/submit_leave", methods=["POST"])
 def submit_leave():
 
+    try:
+
         data = request.get_json()
+
+        print("Apply route hit")
+        print(data)
+
         leave_data = {
+            "name": data.get("name"),
+            "fromDate": data.get("fromDate"),
             "toDate": data.get("toDate"),
+            "reason": data.get("reason")
         }
+
+        # Save to MongoDB
+        if use_mongodb:
+            leaves_collection.insert_one(leave_data)
+
+        # Save in memory
+        else:
+            in_memory_leaves.append(leave_data)
+
         return jsonify({
+            "success": True,
             "message": "Leave application submitted successfully"
         })
 
+    except Exception as e:
 
         print("ERROR:", str(e))
 
         return jsonify({
+            "success": False,
             "message": str(e)
         }), 500
 
@@ -96,7 +123,6 @@ def submit_leave():
 def get_leaves():
 
     try:
-
         if use_mongodb:
             leaves = list(leaves_collection.find({}, {"_id": 0}))
         else:
@@ -104,38 +130,17 @@ def get_leaves():
 
         return jsonify(leaves)
 
+
     except Exception as e:
 
         return jsonify({
+
             "success": False,
             "message": str(e)
+
         }), 500
 
 # ---------------- RUN APP ----------------
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)            "success": False,
-    except Exception as e:
-            "success": True,
-
-            leaves_collection.insert_one(leave_data)
-        else:
-            in_memory_leaves.append(leave_data)
-
-        # Save in memory
-
-        # Save in MongoDB
-        if use_mongodb:
-            "reason": data.get("reason")
-            "fromDate": data.get("fromDate"),
-            "name": data.get("name"),
-        print("Apply route hit")
-
-        print(data)
-
-    try:
-
-
-
-    return send_from_directory("../frontend", "script.js")
-
+    app.run(host="0.0.0.0", port=5000)
