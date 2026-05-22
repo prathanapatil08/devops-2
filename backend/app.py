@@ -64,31 +64,59 @@ def about():
 
 @app.route("/style.css")
 def style():
+
     return send_from_directory("../frontend", "script.js")
 
 
 @app.route("/submit_leave", methods=["POST"])
 def submit_leave():
+
+    return send_from_directory("../frontend", "style.css")
+
+# ---------------- JS ----------------
+
+@app.route("/script.js")
+def script():
+    return send_from_directory("../frontend", "script.js")
+
+# ---------------- SUBMIT LEAVE ----------------
+
+@app.route("/submit_leave", methods=["POST"])
+def submit_leave():
+
+
     try:
         data = request.get_json()
 
         print("Apply route hit")
         print(data)
+
         leave_data = {
             "name": data.get("name"),
             "toDate": data.get("toDate"),
+
+        leave_data = {
+            "name": data.get("name"),
+            "fromDate": data.get("fromDate"),
+            "toDate": data.get("toDate"),
+            "reason": data.get("reason")
+
         }
 
         # Save in MongoDB if available
         if use_mongodb:
             leaves_collection.insert_one(leave_data)
 
-        else:
 
+        else:
+        # Otherwise use temporary memory
+        else:
+            in_memory_leaves.append(leave_data)
         return jsonify({
             "success": True,
             "message": "Leave application submitted successfully"
         })
+
     except Exception as e:
         print("ERROR:", str(e))
 
@@ -117,8 +145,6 @@ def get_leaves():
             "success": False,
             "message": str(e)
         }), 500
-
-
 # ---------------- RUN APP ----------------
 
 if __name__ == "__main__":
