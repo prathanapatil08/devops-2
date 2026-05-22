@@ -1,134 +1,114 @@
-// Configuration
-const API_URL = "http://localhost:5000/api/leave";
+const API_URL = "/get_leaves";
 
-// Utility functions
-function showSuccessMessage(message) {
-    const successDiv = document.getElementById("successMessage");
-    if (successDiv) {
-        successDiv.textContent = message;
-        successDiv.style.display = "block";
-        setTimeout(() => {
-            successDiv.style.display = "none";
-        }, 3000);
-    }
-}
-
-function updateStats(leaves) {
-    const totalRequests = document.getElementById("totalRequests");
-    const pendingRequests = document.getElementById("pendingRequests");
-    const approvedRequests = document.getElementById("approvedRequests");
-    const rejectedRequests = document.getElementById("rejectedRequests");
-
-    if (totalRequests) {
-        totalRequests.textContent = leaves.length;
-        pendingRequests.textContent = leaves.filter(l => l.status === "pending").length;
-        approvedRequests.textContent = leaves.filter(l => l.status === "approved").length;
-        rejectedRequests.textContent = leaves.filter(l => l.status === "rejected").length;
-    }
-}
-
-// Apply Leave Page
+// Submit Leave Form
 const leaveForm = document.getElementById("leaveForm");
+
 if (leaveForm) {
-    leaveForm.addEventListener("submit", async (e) => {
+    leaveForm.addEventListener("submit", async function (e) {
         e.preventDefault();
 
-        const data = {
-            name: document.getElementById("name").value,
-            fromDate: document.getElementById("fromDate").value,
-            toDate: document.getElementById("toDate").value,
-            reason: document.getElementById("reason").value
-        };
+        const name = document.getElementById("name").value;
+        const fromDate = document.getElementById("fromDate").value;
+        const toDate = document.getElementById("toDate").value;
+        const reason = document.getElementById("reason").value;
 
         try {
-            const res = await fetch(API_URL, {
+            const res = await fetch("/submit_leave", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data)
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    name: name,
+                    fromDate: fromDate,
+                    toDate: toDate,
+                    reason: reason
+                })
             });
 
-            if (!res.ok) throw new Error("Failed to add leave");
+            const data = await res.json();
 
-            leaveForm.reset();
-            showSuccessMessage("Leave application submitted successfully!");
+            if (data.success) {
+                alert("Leave application submitted successfully!");
+                leaveForm.reset();
+                window.location.href = "/dashboard";
+            } else {
+                alert("Error submitting leave application. Please try again.");
+            }
 
         } catch (err) {
-            console.error("Error submitting form:", err);
+            console.error("Error submitting leave:", err);
             alert("Error submitting leave application. Please try again.");
         }
     });
 }
 
-// Dashboard functionality
+// Dashboard filter
 let currentFilter = "all";
 
-function filterLeaves(leaves, filter) {
-    if (filter === "all") return leaves;
-    return leaves.filter(leave => leave.status === filter);
-}
-
-function renderLeaveList(leaves, filter = "all") {
-    const list = document.getElementById("leaveList");
-    if (!list) return;
-
-    const filteredLeaves = filterLeaves(leaves, filter);
-    list.innerHTML = "";
-
-    filteredLeaves.forEach(leave => {
-        const li = document.createElement("li");
-        li.className = leave.status;
-
-        const statusBadge = `<span class="status-badge status-${leave.status}">${leave.status.toUpperCase()}</span>`;
-
-        const actionButtons = leave.status === "pending" ?
-            `<div class="action-buttons">
-                <button class="approve-btn" data-id="${leave.id}">Approve</button>
-                <button class="reject-btn" data-id="${leave.id}">Reject</button>
-            </div>` : "";
-
-        li.innerHTML = `
-            <div class="leave-header">
-                <strong>${leave.name}</strong>
-                ${statusBadge}
-            </div>
-            <div class="leave-dates">
-                ${leave.fromDate} → ${leave.toDate}
-            </div>
-            <div class="leave-reason">
-                <small>${leave.reason}</small>
-            </div>
-            ${actionButtons}
-        `;
-
-        list.appendChild(li);
-    });
-
-    // Add event listeners for approve/reject buttons
-    document.querySelectorAll(".approve-btn").forEach(btn => {
-        btn.addEventListener("click", () => updateLeaveStatus(btn.dataset.id, "approved"));
-    });
-
-    document.querySelectorAll(".reject-btn").forEach(btn => {
-        btn.addEventListener("click", () => updateLeaveStatus(btn.dataset.id, "rejected"));
-    });
-}
-
-async function updateLeaveStatus(leaveId, status) {
+// Load leaves
+async function loadLeaves() {
     try {
-        const res = await fetch(`${API_URL}/${leaveId}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ status })
-        });
+        const res = await fetch(API_URL);
+        if (!res.ok) throw new Error("Server error");
 
-        if (!res.ok) throw new Error("Failed to update leave");
+        const leaves = await res.json();
 
-        loadLeaves(); // Reload the list
+        updateStats(leaves);
+        renderLeaveList(leaves, currentFilter);
 
     } catch (err) {
-        console.error("Error updating leave:", err);
-        alert("Error updating leave status. Please try again.");
+        console.error("Error loading leaves:", err);
     }
+}
+
+// Update dashboard stats
+function updateStats(leaves) {
+    const totalLeaves = document.getElementById("totalLeaves");
+    const pendingLeaves = document.getElementById("pendingLeaves");
+    const approvedLeaves = document.getElementById("approvedLeaves");
+    const rejectedLeaves = document.getElementById("rejectedLeaves");
+
+    if (!totalLeaves) return;
+
+    totalLeaves.textContent = leaves.length;
+    pendingLeaves.textContent = leaves.filter(l => l.status === "Pending").length;
+    approvedLeaves.textContent = leaves.filter(l => l.status === "Approved").length;
+    rejectedLeaves.textContent = leaves.filter(l => l.status === "Rejected").length;
+}
+
+// Render leave list
+function renderLeaveList(leaves, filter) {
+    const leaveList = document.getElementById("leaveList");
+    if (!leaveList) return;
+
+    leaveList.innerHTML = "";
+
+    let filteredLeaves = leaves;
+
+    if (filter !== "all") {
+        filteredLeaves = leaves.filter(l => l.status === filter);
+    }
+
+    if (filteredLeaves.length === 0) {
+        leaveList.innerHTML = "<p>No leave applications found.</p>";
+        return;
+    }
+
+    filteredLeaves.forEach((leave, index) => {
+        const div = document.createElement("div");
+        div.className = "leave-card";
+
+        div.innerHTML = `
+            <h3>${leave.name || "Unknown"}</h3>
+            <p><strong>From:</strong> ${leave.fromDate || ""}</p>
+            <p><strong>To:</strong> ${leave.toDate || ""}</p>
+            <p><strong>Reason:</strong> ${leave.reason || ""}</p>
+            <p><strong>Status:</strong> ${leave.status || "Pending"}</p>
+        `;
+
+        leaveList.appendChild(div);
+    });
 }
 
 // Filter buttons
@@ -141,30 +121,14 @@ document.querySelectorAll(".filter-btn").forEach(btn => {
     });
 });
 
-// Load leaves function
-async function loadLeaves() {
-    try {
-        const res = await fetch(API_URL);
-        if (!res.ok) throw new Error("Server error");
-
-        const leaves = await res.json();
-        updateStats(leaves);
-        renderLeaveList(leaves, currentFilter);
-
-    } catch (err) {
-        console.error("Error loading leaves:", err);
-    }
-}
-
-// Load leaves on dashboard page
+// Load dashboard
 if (document.getElementById("leaveList")) {
     loadLeaves();
 }
 
-// Navigation highlight (simple client-side routing indication)
+// Navigation active link
 const currentPath = window.location.pathname;
+
 document.querySelectorAll(".nav-menu a").forEach(link => {
     if (link.getAttribute("href") === currentPath) {
         link.classList.add("active");
-    }
-});
