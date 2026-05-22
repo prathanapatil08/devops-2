@@ -92,7 +92,8 @@ def submit_leave():
             "name": data.get("name"),
             "fromDate": data.get("fromDate"),
             "toDate": data.get("toDate"),
-            "reason": data.get("reason")
+            "reason": data.get("reason"),
+            "status": "Pending"
         }
 
         # Save to MongoDB
