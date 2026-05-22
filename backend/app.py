@@ -13,30 +13,34 @@ CORS(app)
 MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
 DB_NAME = os.getenv("DB_NAME", "devops_leave_management")
 
-# In-memory fallback
+# In-memory fallback storage
 in_memory_leaves = []
 
 try:
     mongo_client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=5000)
+
+    # Force connection test
+    mongo_client.server_info()
+
     db = mongo_client[DB_NAME]
     leaves_collection = db["leaves"]
 
-    # Test MongoDB connection
-    mongo_client.server_info()
-
     print("✓ Connected to MongoDB")
+
     use_mongodb = True
 
 except Exception as e:
+
     print(f"⚠ MongoDB not available: {e}")
     print("⚠ Using in-memory storage instead")
 
     mongo_client = None
     db = None
     leaves_collection = None
+
     use_mongodb = False
 
-# ---------------- HOME PAGE ----------------
+# ---------------- HOME ----------------
 
 @app.route("/")
 def home():
@@ -48,13 +52,13 @@ def home():
 def apply():
     return send_from_directory("../frontend", "apply.html")
 
-# ---------------- DASHBOARD PAGE ----------------
+# ---------------- DASHBOARD ----------------
 
 @app.route("/dashboard")
 def dashboard():
     return send_from_directory("../frontend", "dashboard.html")
 
-# ---------------- ABOUT PAGE ----------------
+# ---------------- ABOUT ----------------
 
 @app.route("/about")
 def about():
@@ -64,64 +68,25 @@ def about():
 
 @app.route("/style.css")
 def style():
-
-    return send_from_directory("../frontend", "script.js")
-
-
-@app.route("/submit_leave", methods=["POST"])
-def submit_leave():
-
-    return send_from_directory("../frontend", "style.css")
-
 # ---------------- JS ----------------
-
 @app.route("/script.js")
 def script():
-    return send_from_directory("../frontend", "script.js")
-
 # ---------------- SUBMIT LEAVE ----------------
-
 @app.route("/submit_leave", methods=["POST"])
 def submit_leave():
 
-
-    try:
         data = request.get_json()
-
-        print("Apply route hit")
-        print(data)
-
         leave_data = {
-            "name": data.get("name"),
             "toDate": data.get("toDate"),
-
-        leave_data = {
-            "name": data.get("name"),
-            "fromDate": data.get("fromDate"),
-            "toDate": data.get("toDate"),
-            "reason": data.get("reason")
-
         }
-
-        # Save in MongoDB if available
-        if use_mongodb:
-            leaves_collection.insert_one(leave_data)
-
-
-        else:
-        # Otherwise use temporary memory
-        else:
-            in_memory_leaves.append(leave_data)
         return jsonify({
-            "success": True,
             "message": "Leave application submitted successfully"
         })
 
-    except Exception as e:
+
         print("ERROR:", str(e))
 
         return jsonify({
-            "success": False,
             "message": str(e)
         }), 500
 
@@ -134,26 +99,43 @@ def get_leaves():
 
         if use_mongodb:
             leaves = list(leaves_collection.find({}, {"_id": 0}))
-
         else:
             leaves = in_memory_leaves
 
         return jsonify(leaves)
 
     except Exception as e:
+
         return jsonify({
             "success": False,
             "message": str(e)
         }), 500
+
 # ---------------- RUN APP ----------------
 
 if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)            "success": False,
+    except Exception as e:
+            "success": True,
+
+            leaves_collection.insert_one(leave_data)
+        else:
             in_memory_leaves.append(leave_data)
-    app.run(host="0.0.0.0", port=5000)        # Otherwise use temporary memory
+
+        # Save in memory
+
+        # Save in MongoDB
+        if use_mongodb:
             "reason": data.get("reason")
             "fromDate": data.get("fromDate"),
+            "name": data.get("name"),
+        print("Apply route hit")
+
+        print(data)
+
+    try:
 
 
-# ---------------- SUBMIT LEAVE ----------------
-def script():
+
+    return send_from_directory("../frontend", "script.js")
 
