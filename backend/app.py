@@ -85,8 +85,9 @@ def submit_leave():
 
         data = request.get_json()
 
-        print("Apply route hit")
-        print(data)
+        print("="*50)
+        print("POST /submit_leave - Request received")
+        print(f"Request data: {data}")
 
         leave_data = {
             "name": data.get("name"),
@@ -95,15 +96,24 @@ def submit_leave():
             "reason": data.get("reason"),
             "status": "Pending"
         }
+        
+        print(f"Leave data to store: {leave_data}")
 
         # Save to MongoDB
         if use_mongodb:
+            print("Saving to MongoDB")
             leaves_collection.insert_one(leave_data)
+            print("✓ Saved to MongoDB")
 
         # Save in memory
         else:
+            print("Saving to in-memory storage")
             in_memory_leaves.append(leave_data)
+            print(f"✓ Saved to in-memory storage. Total leaves: {len(in_memory_leaves)}")
+            print(f"Current in_memory_leaves: {in_memory_leaves}")
 
+        print("="*50)
+        
         return jsonify({
             "success": True,
             "message": "Leave application submitted successfully"
@@ -111,7 +121,9 @@ def submit_leave():
 
     except Exception as e:
 
-        print("ERROR:", str(e))
+        print("="*50)
+        print("ERROR in /submit_leave:", str(e))
+        print("="*50)
 
         return jsonify({
             "success": False,
@@ -129,11 +141,15 @@ def get_leaves():
         else:
             leaves = in_memory_leaves
 
+        print(f"GET /get_leaves - Returning {len(leaves)} leaves")
+        print(f"Leaves data: {leaves}")
+        
         return jsonify(leaves)
 
 
     except Exception as e:
-
+        print(f"ERROR in /get_leaves: {str(e)}")
+        
         return jsonify({
 
             "success": False,

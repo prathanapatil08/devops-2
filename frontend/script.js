@@ -6,39 +6,60 @@ const leaveForm = document.getElementById("leaveForm");
 if (leaveForm) {
     leaveForm.addEventListener("submit", async function (e) {
         e.preventDefault();
+        console.log("Form submitted");
 
         const name = document.getElementById("name").value;
         const fromDate = document.getElementById("fromDate").value;
         const toDate = document.getElementById("toDate").value;
         const reason = document.getElementById("reason").value;
 
+        console.log("Form data:", { name, fromDate, toDate, reason });
+
         try {
+            const payload = {
+                name: name,
+                fromDate: fromDate,
+                toDate: toDate,
+                reason: reason
+            };
+            
+            console.log("Sending POST request to /submit_leave with:", payload);
+            
             const res = await fetch("/submit_leave", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
                 },
-                body: JSON.stringify({
-                    name: name,
-                    fromDate: fromDate,
-                    toDate: toDate,
-                    reason: reason
-                })
+                body: JSON.stringify(payload)
             });
 
+            console.log("Response status:", res.status);
+            console.log("Response headers:", res.headers);
+
+            if (!res.ok) {
+                throw new Error(`Server error: ${res.status}`);
+            }
+
             const data = await res.json();
+            console.log("Response data:", data);
 
             if (data.success) {
+                const successMsg = document.getElementById("successMessage");
+                if (successMsg) {
+                    successMsg.style.display = "block";
+                }
                 alert("Leave application submitted successfully!");
                 leaveForm.reset();
-                window.location.href = "/dashboard";
+                setTimeout(() => {
+                    window.location.href = "/dashboard";
+                }, 1000);
             } else {
-                alert("Error submitting leave application. Please try again.");
+                alert("Error: " + (data.message || "Failed to submit leave application"));
             }
 
         } catch (err) {
             console.error("Error submitting leave:", err);
-            alert("Error submitting leave application. Please try again.");
+            alert("Error submitting leave application: " + err.message);
         }
     });
 }
@@ -49,16 +70,25 @@ let currentFilter = "all";
 // Load leaves
 async function loadLeaves() {
     try {
+        console.log("Loading leaves from:", API_URL);
         const res = await fetch(API_URL);
-        if (!res.ok) throw new Error("Server error");
+        
+        if (!res.ok) {
+            throw new Error(`Server error: ${res.status}`);
+        }
 
         const leaves = await res.json();
+        console.log("Leaves loaded:", leaves);
 
         updateStats(leaves);
         renderLeaveList(leaves, currentFilter);
 
     } catch (err) {
         console.error("Error loading leaves:", err);
+        const leaveList = document.getElementById("leaveList");
+        if (leaveList) {
+            leaveList.innerHTML = `<p style="color: red;">Error loading leaves: ${err.message}</p>`;
+        }
     }
 }
 
@@ -123,7 +153,14 @@ document.querySelectorAll(".filter-btn").forEach(btn => {
 
 // Load dashboard
 if (document.getElementById("leaveList")) {
+    console.log("Dashboard page detected, loading leaves");
     loadLeaves();
+    
+    // Auto-refresh dashboard every 3 seconds
+    setInterval(() => {
+        console.log("Auto-refreshing dashboard");
+        loadLeaves();
+    }, 3000);
 }
 
 // Navigation active link
