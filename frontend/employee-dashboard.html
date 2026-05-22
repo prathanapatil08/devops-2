@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Leave Management System - Employee Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="nav-container">
+        <h2 class="nav-logo">LeaveMS</h2>
+        <ul class="nav-menu">
+            <li><a href="/employee-dashboard" class="active">Dashboard</a></li>
+            <li><a href="/apply">Apply Leave</a></li>
+            <li><a href="#" id="logoutBtn">Logout</a></li>
+        </ul>
+    </div>
+</nav>
+
+<div class="container">
+    <h1>My Leave Dashboard</h1>
+
+    <div class="dashboard-stats">
+        <div class="stat-card">
+            <h3>Total Requests</h3>
+            <span id="employeeTotalLeaves">0</span>
+        </div>
+        <div class="stat-card">
+            <h3>Pending</h3>
+            <span id="employeePendingLeaves" class="pending">0</span>
+        </div>
+        <div class="stat-card">
+            <h3>Approved</h3>
+            <span id="employeeApprovedLeaves" class="approved">0</span>
+        </div>
+        <div class="stat-card">
+            <h3>Rejected</h3>
+            <span id="employeeRejectedLeaves" class="rejected">0</span>
+        </div>
+    </div>
+
+    <h2>My Leave Applications</h2>
+    <ul id="employeeLeaveList" class="leave-list"></ul>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

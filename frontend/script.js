@@ -1,112 +1,237 @@
-const API_URL = "/get_leaves";
+// ==================== TOAST NOTIFICATIONS ====================
 
-// Wait for DOM to be fully loaded
-document.addEventListener("DOMContentLoaded", function() {
-    console.log("DOM Content Loaded - Initializing form handlers");
+function showToast(message, type = "success") {
+    const toast = document.createElement("div");
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `
+        <div class="toast-content">
+            <span class="toast-message">${message}</span>
+            <button class="toast-close" onclick="this.parentElement.parentElement.remove()">×</button>
+        </div>
+    `;
     
-    // Submit Leave Form
-    const leaveForm = document.getElementById("leaveForm");
-    console.log("Leave form element:", leaveForm);
+    const toastContainer = document.getElementById("toastContainer") || createToastContainer();
+    toastContainer.appendChild(toast);
 
+    // Auto remove after 4 seconds
+    setTimeout(() => {
+        if (toast.parentElement) {
+            toast.style.animation = "slideOut 0.3s ease forwards";
+            setTimeout(() => toast.remove(), 300);
+        }
+    }, 4000);
+}
+
+function createToastContainer() {
+    const container = document.createElement("div");
+    container.id = "toastContainer";
+    container.className = "toast-container";
+    document.body.appendChild(container);
+    return container;
+}
+
+// ==================== SESSION MANAGEMENT ====================
+
+let currentSession = {
+    sessionId: localStorage.getItem("sessionId"),
+    role: localStorage.getItem("userRole"),
+    email: localStorage.getItem("userEmail")
+};
+
+function isLoggedIn() {
+    return currentSession.sessionId && currentSession.role;
+}
+
+function logout() {
+    localStorage.removeItem("sessionId");
+    localStorage.removeItem("userRole");
+    localStorage.removeItem("userEmail");
+    currentSession = { sessionId: null, role: null, email: null };
+    window.location.href = "/login.html";
+}
+
+// ==================== LOGIN PAGE ====================
+
+document.addEventListener("DOMContentLoaded", function() {
+    // Handle login page
+    const loginForm = document.getElementById("loginForm");
+    const roleButtons = document.querySelectorAll(".role-btn");
+
+    let selectedRole = "employee";
+
+    if (roleButtons.length > 0) {
+        // Login page initialization
+        roleButtons.forEach(btn => {
+            btn.addEventListener("click", (e) => {
+                e.preventDefault();
+                roleButtons.forEach(b => b.classList.remove("active"));
+                btn.classList.add("active");
+                selectedRole = btn.dataset.role;
+            });
+        });
+
+        if (loginForm) {
+            loginForm.addEventListener("submit", async function(e) {
+                e.preventDefault();
+                console.log("Login form submitted");
+
+                const email = document.getElementById("email").value;
+                const password = document.getElementById("password").value;
+                const errorMessage = document.getElementById("errorMessage");
+
+                try {
+                    const res = await fetch("/login", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            email: email,
+                            password: password,
+                            role: selectedRole
+                        })
+                    });
+
+                    const data = await res.json();
+
+                    if (data.success) {
+                        localStorage.setItem("sessionId", data.session_id);
+                        localStorage.setItem("userRole", data.role);
+                        localStorage.setItem("userEmail", data.email);
+                        
+                        if (data.role === "manager") {
+                            window.location.href = "/manager-dashboard";
+                        } else {
+                            window.location.href = "/employee-dashboard";
+                        }
+                    } else {
+                        errorMessage.textContent = data.message;
+                        errorMessage.style.display = "block";
+                    }
+                } catch (err) {
+                    console.error("Login error:", err);
+                    errorMessage.textContent = "An error occurred. Please try again.";
+                    errorMessage.style.display = "block";
+                }
+            });
+        }
+    }
+
+    // Handle apply leave form (employee)
+    const leaveForm = document.getElementById("leaveForm");
     if (leaveForm) {
-        console.log("Attaching submit event listener to leaveForm");
-        leaveForm.addEventListener("submit", async function (e) {
+        console.log("Apply leave form found");
+        leaveForm.addEventListener("submit", async function(e) {
             e.preventDefault();
-            console.log("Form submitted");
+            console.log("Leave form submitted");
+
+            if (!isLoggedIn()) {
+                showToast("Please log in first", "error");
+                window.location.href = "/login.html";
+                return;
+            }
 
             const name = document.getElementById("name").value;
             const fromDate = document.getElementById("fromDate").value;
             const toDate = document.getElementById("toDate").value;
             const reason = document.getElementById("reason").value;
 
-            console.log("Form data:", { name, fromDate, toDate, reason });
-
             try {
-                const payload = {
-                    name: name,
-                    fromDate: fromDate,
-                    toDate: toDate,
-                    reason: reason
-                };
-                
-                console.log("Sending POST request to /submit_leave with:", payload);
-                
                 const res = await fetch("/submit_leave", {
                     method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify(payload)
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        name: name,
+                        fromDate: fromDate,
+                        toDate: toDate,
+                        reason: reason,
+                        session_id: currentSession.sessionId
+                    })
                 });
 
-                console.log("Response status:", res.status);
-                console.log("Response headers:", res.headers);
-
-                if (!res.ok) {
-                    throw new Error(`Server error: ${res.status}`);
-                }
-
                 const data = await res.json();
-                console.log("Response data:", data);
 
                 if (data.success) {
-                    const successMsg = document.getElementById("successMessage");
-                    if (successMsg) {
-                        successMsg.style.display = "block";
-                    }
-                    alert("Leave application submitted successfully!");
+                    showToast("Leave application submitted successfully!", "success");
                     leaveForm.reset();
                     setTimeout(() => {
-                        window.location.href = "/dashboard";
-                    }, 1000);
+                        window.location.href = "/employee-dashboard";
+                    }, 1500);
                 } else {
-                    alert("Error: " + (data.message || "Failed to submit leave application"));
+                    showToast("Error: " + data.message, "error");
                 }
-
             } catch (err) {
                 console.error("Error submitting leave:", err);
-                alert("Error submitting leave application: " + err.message);
+                showToast("Error submitting leave application", "error");
             }
         });
-    } else {
-        console.log("Leave form not found on this page");
+    }
+
+    // Handle employee dashboard
+    const employeeLeaveList = document.getElementById("employeeLeaveList");
+    if (employeeLeaveList) {
+        console.log("Employee dashboard detected");
+        
+        if (!isLoggedIn()) {
+            window.location.href = "/login.html";
+            return;
+        }
+
+        loadEmployeeLeaves();
+        
+        // Refresh every 2 seconds
+        setInterval(() => {
+            loadEmployeeLeaves();
+        }, 2000);
+    }
+
+    // Handle manager dashboard
+    const managerLeaveList = document.getElementById("managerLeaveList");
+    if (managerLeaveList) {
+        console.log("Manager dashboard detected");
+        
+        if (!isLoggedIn() || currentSession.role !== "manager") {
+            window.location.href = "/login.html";
+            return;
+        }
+
+        loadManagerLeaves();
+        
+        // Refresh every 2 seconds
+        setInterval(() => {
+            loadManagerLeaves();
+        }, 2000);
+    }
+
+    // Navigation logout
+    const logoutBtn = document.getElementById("logoutBtn");
+    if (logoutBtn) {
+        logoutBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            logout();
+        });
     }
 });
 
-// Dashboard filter
-let currentFilter = "all";
+// ==================== EMPLOYEE DASHBOARD ====================
 
-// Load leaves
-async function loadLeaves() {
+async function loadEmployeeLeaves() {
     try {
-        console.log("Loading leaves from:", API_URL);
-        const res = await fetch(API_URL);
-        
-        if (!res.ok) {
-            throw new Error(`Server error: ${res.status}`);
-        }
+        if (!isLoggedIn()) return;
 
+        const res = await fetch(`/get_leaves?session_id=${currentSession.sessionId}&role=employee`);
         const leaves = await res.json();
-        console.log("Leaves loaded:", leaves);
 
-        updateStats(leaves);
-        renderLeaveList(leaves, currentFilter);
-
+        updateEmployeeStats(leaves);
+        renderEmployeeLeaves(leaves);
     } catch (err) {
         console.error("Error loading leaves:", err);
-        const leaveList = document.getElementById("leaveList");
-        if (leaveList) {
-            leaveList.innerHTML = `<p style="color: red;">Error loading leaves: ${err.message}</p>`;
-        }
     }
 }
 
-// Update dashboard stats
-function updateStats(leaves) {
-    const totalLeaves = document.getElementById("totalLeaves");
-    const pendingLeaves = document.getElementById("pendingLeaves");
-    const approvedLeaves = document.getElementById("approvedLeaves");
-    const rejectedLeaves = document.getElementById("rejectedLeaves");
+function updateEmployeeStats(leaves) {
+    const totalLeaves = document.getElementById("employeeTotalLeaves");
+    const pendingLeaves = document.getElementById("employeePendingLeaves");
+    const approvedLeaves = document.getElementById("employeeApprovedLeaves");
+    const rejectedLeaves = document.getElementById("employeeRejectedLeaves");
 
     if (!totalLeaves) return;
 
@@ -116,69 +241,187 @@ function updateStats(leaves) {
     rejectedLeaves.textContent = leaves.filter(l => l.status === "Rejected").length;
 }
 
-// Render leave list
-function renderLeaveList(leaves, filter) {
-    const leaveList = document.getElementById("leaveList");
+function renderEmployeeLeaves(leaves) {
+    const leaveList = document.getElementById("employeeLeaveList");
     if (!leaveList) return;
 
     leaveList.innerHTML = "";
 
-    let filteredLeaves = leaves;
-
-    if (filter !== "all") {
-        filteredLeaves = leaves.filter(l => l.status === filter);
-    }
-
-    if (filteredLeaves.length === 0) {
+    if (leaves.length === 0) {
         leaveList.innerHTML = "<p>No leave applications found.</p>";
         return;
     }
 
-    filteredLeaves.forEach((leave, index) => {
+    leaves.forEach((leave) => {
+        const statusClass = `status-${leave.status.toLowerCase()}`;
         const div = document.createElement("div");
-        div.className = "leave-card";
+        div.className = `leave-card ${statusClass}`;
 
         div.innerHTML = `
-            <h3>${leave.name || "Unknown"}</h3>
-            <p><strong>From:</strong> ${leave.fromDate || ""}</p>
-            <p><strong>To:</strong> ${leave.toDate || ""}</p>
-            <p><strong>Reason:</strong> ${leave.reason || ""}</p>
-            <p><strong>Status:</strong> ${leave.status || "Pending"}</p>
+            <div class="leave-card-header">
+                <h3>${leave.name}</h3>
+                <span class="status-badge ${leave.status.toLowerCase()}">${leave.status}</span>
+            </div>
+            <div class="leave-card-body">
+                <p><strong>From:</strong> ${leave.fromDate}</p>
+                <p><strong>To:</strong> ${leave.toDate}</p>
+                <p><strong>Reason:</strong> ${leave.reason}</p>
+                ${leave.manager_notes ? `<p><strong>Manager Notes:</strong> ${leave.manager_notes}</p>` : ""}
+                <p class="small-text"><strong>Applied:</strong> ${new Date(leave.submitted_at).toLocaleDateString()}</p>
+            </div>
         `;
 
         leaveList.appendChild(div);
     });
 }
 
-// Filter buttons
-document.addEventListener("DOMContentLoaded", function() {
-    document.querySelectorAll(".filter-btn").forEach(btn => {
-        btn.addEventListener("click", (e) => {
-            document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
-            e.target.classList.add("active");
-            currentFilter = e.target.dataset.filter;
-            loadLeaves();
-        });
-    });
+// ==================== MANAGER DASHBOARD ====================
 
-    // Load dashboard
-    if (document.getElementById("leaveList")) {
-        console.log("Dashboard page detected, loading leaves");
-        loadLeaves();
-        
-        // Auto-refresh dashboard every 3 seconds
-        setInterval(() => {
-            console.log("Auto-refreshing dashboard");
-            loadLeaves();
-        }, 3000);
+async function loadManagerLeaves() {
+    try {
+        if (!isLoggedIn()) return;
+
+        const res = await fetch(`/get_leaves?session_id=${currentSession.sessionId}&role=manager`);
+        const leaves = await res.json();
+
+        updateManagerStats(leaves);
+        renderManagerLeaves(leaves);
+    } catch (err) {
+        console.error("Error loading leaves:", err);
+    }
+}
+
+function updateManagerStats(leaves) {
+    const totalLeaves = document.getElementById("managerTotalLeaves");
+    const pendingLeaves = document.getElementById("managerPendingLeaves");
+    const approvedLeaves = document.getElementById("managerApprovedLeaves");
+    const rejectedLeaves = document.getElementById("managerRejectedLeaves");
+
+    if (!totalLeaves) return;
+
+    totalLeaves.textContent = leaves.length;
+    pendingLeaves.textContent = leaves.filter(l => l.status === "Pending").length;
+    approvedLeaves.textContent = leaves.filter(l => l.status === "Approved").length;
+    rejectedLeaves.textContent = leaves.filter(l => l.status === "Rejected").length;
+}
+
+function renderManagerLeaves(leaves) {
+    const leaveList = document.getElementById("managerLeaveList");
+    if (!leaveList) return;
+
+    leaveList.innerHTML = "";
+
+    if (leaves.length === 0) {
+        leaveList.innerHTML = "<p>No leave applications found.</p>";
+        return;
     }
 
-    // Navigation active link
-    const currentPath = window.location.pathname;
-
-    document.querySelectorAll(".nav-menu a").forEach(link => {
-        if (link.getAttribute("href") === currentPath) {
-            link.classList.add("active");
-        }
+    // Sort: pending first, then by date
+    const sorted = [...leaves].sort((a, b) => {
+        if (a.status === "Pending" && b.status !== "Pending") return -1;
+        if (a.status !== "Pending" && b.status === "Pending") return 1;
+        return new Date(b.submitted_at) - new Date(a.submitted_at);
     });
-});
+
+    sorted.forEach((leave) => {
+        const statusClass = `status-${leave.status.toLowerCase()}`;
+        const div = document.createElement("div");
+        div.className = `leave-card manager-card ${statusClass}`;
+
+        let actionButtons = "";
+        if (leave.status === "Pending") {
+            actionButtons = `
+                <div class="action-buttons">
+                    <button class="btn-approve" onclick="approveLeaveDirect('${leave.id}', '${currentSession.sessionId}')">Approve</button>
+                    <button class="btn-reject" onclick="rejectLeaveDirect('${leave.id}', '${currentSession.sessionId}')">Reject</button>
+                </div>
+            `;
+        }
+
+        div.innerHTML = `
+            <div class="leave-card-header">
+                <div>
+                    <h3>${leave.name}</h3>
+                    <p class="employee-email">${leave.employee_email}</p>
+                </div>
+                <span class="status-badge ${leave.status.toLowerCase()}">${leave.status}</span>
+            </div>
+            <div class="leave-card-body">
+                <p><strong>From:</strong> ${leave.fromDate}</p>
+                <p><strong>To:</strong> ${leave.toDate}</p>
+                <p><strong>Reason:</strong> ${leave.reason}</p>
+                ${leave.manager_notes ? `<p><strong>Manager Notes:</strong> ${leave.manager_notes}</p>` : ""}
+                <p class="small-text"><strong>Applied:</strong> ${new Date(leave.submitted_at).toLocaleDateString()}</p>
+            </div>
+            ${actionButtons}
+        `;
+
+        leaveList.appendChild(div);
+    });
+}
+
+async function approveLeaveDirect(leaveId, sessionId) {
+    await approveLeave(leaveId, sessionId);
+}
+
+async function rejectLeaveDirect(leaveId, sessionId) {
+    await rejectLeave(leaveId, sessionId);
+}
+
+async function approveLeave(leaveId, sessionId) {
+    try {
+        const notes = prompt("Add manager notes (optional):");
+        if (notes === null) return; // User cancelled
+
+        const res = await fetch("/approve_leave", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                leave_id: leaveId,
+                session_id: sessionId,
+                manager_notes: notes
+            })
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            showToast("✓ Leave approved successfully!", "success");
+            loadManagerLeaves();
+        } else {
+            showToast("Error: " + data.message, "error");
+        }
+    } catch (err) {
+        console.error("Error approving leave:", err);
+        showToast("Error approving leave", "error");
+    }
+}
+
+async function rejectLeave(leaveId, sessionId) {
+    try {
+        const notes = prompt("Please provide reason for rejection:");
+        if (notes === null) return; // User cancelled
+
+        const res = await fetch("/reject_leave", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                leave_id: leaveId,
+                session_id: sessionId,
+                manager_notes: notes
+            })
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            showToast("Leave rejected", "info");
+            loadManagerLeaves();
+        } else {
+            showToast("Error: " + data.message, "error");
+        }
+    } catch (err) {
+        console.error("Error rejecting leave:", err);
+        showToast("Error rejecting leave", "error");
+    }
+}

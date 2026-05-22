@@ -3,6 +3,7 @@ from flask_cors import CORS
 from pymongo import MongoClient
 import os
 from dotenv import load_dotenv
+from datetime import datetime
 
 load_dotenv()
 
@@ -13,8 +14,21 @@ CORS(app)
 MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
 DB_NAME = os.getenv("DB_NAME", "devops_leave_management")
 
-# In-memory fallback
+# Demo Credentials
+DEMO_USERS = {
+    "employee": {
+        "email": "employee1@gmail.com",
+        "password": "emp@123"
+    },
+    "manager": {
+        "email": "manager1@gmail.com",
+        "password": "mgr@123"
+    }
+}
+
+# In-memory storage
 in_memory_leaves = []
+in_memory_sessions = {}
 
 try:
     mongo_client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=5000)
@@ -40,11 +54,72 @@ except Exception as e:
 
     use_mongodb = False
 
-# ---------------- HOME ----------------
+# ---------------- LOGIN ----------------
+
+@app.route("/login", methods=["POST"])
+def login():
+    try:
+        data = request.get_json()
+        email = data.get("email")
+        password = data.get("password")
+        role = data.get("role", "employee")
+
+        print(f"Login attempt - Email: {email}, Role: {role}")
+
+        # Validate credentials
+        if role not in DEMO_USERS:
+            return jsonify({"success": False, "message": "Invalid role"}), 400
+
+        user = DEMO_USERS[role]
+        if user["email"] != email or user["password"] != password:
+            return jsonify({"success": False, "message": "Invalid email or password"}), 401
+
+        # Create session
+        session_id = f"{email}_{datetime.now().timestamp()}"
+        in_memory_sessions[session_id] = {
+            "email": email,
+            "role": role,
+            "name": "Employee" if role == "employee" else "Manager",
+            "logged_in_at": datetime.now().isoformat()
+        }
+
+        print(f"✓ Login successful - Session ID: {session_id}")
+
+        return jsonify({
+            "success": True,
+            "message": "Login successful",
+            "session_id": session_id,
+            "role": role,
+            "email": email
+        })
+
+    except Exception as e:
+        print(f"ERROR in /login: {str(e)}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+# ----------------HOME ----------------
 
 @app.route("/")
 def home():
-    return send_from_directory("../frontend", "index.html")
+    return send_from_directory("../frontend", "login.html")
+
+# -------- LOGIN PAGE --------
+
+@app.route("/login.html")
+def login_page():
+    return send_from_directory("../frontend", "login.html")
+
+# -------- EMPLOYEE DASHBOARD --------
+
+@app.route("/employee-dashboard")
+def employee_dashboard():
+    return send_from_directory("../frontend", "employee-dashboard.html")
+
+# -------- MANAGER DASHBOARD --------
+
+@app.route("/manager-dashboard")
+def manager_dashboard():
+    return send_from_directory("../frontend", "manager-dashboard.html")
 
 # ---------------- APPLY PAGE ----------------
 
@@ -84,17 +159,27 @@ def submit_leave():
     try:
 
         data = request.get_json()
+        session_id = data.get("session_id")
 
         print("="*50)
         print("POST /submit_leave - Request received")
         print(f"Request data: {data}")
 
+        if not session_id or session_id not in in_memory_sessions:
+            return jsonify({"success": False, "message": "Unauthorized"}), 401
+
+        employee_email = in_memory_sessions[session_id]["email"]
+
         leave_data = {
+            "id": f"leave_{datetime.now().timestamp()}",
+            "employee_email": employee_email,
             "name": data.get("name"),
             "fromDate": data.get("fromDate"),
             "toDate": data.get("toDate"),
             "reason": data.get("reason"),
-            "status": "Pending"
+            "status": "Pending",
+            "submitted_at": datetime.now().isoformat(),
+            "manager_notes": ""
         }
         
         print(f"Leave data to store: {leave_data}")
@@ -136,26 +221,128 @@ def submit_leave():
 def get_leaves():
 
     try:
+        session_id = request.args.get("session_id")
+        role = request.args.get("role", "employee")
+        
         if use_mongodb:
             leaves = list(leaves_collection.find({}, {"_id": 0}))
         else:
             leaves = in_memory_leaves
 
-        print(f"GET /get_leaves - Returning {len(leaves)} leaves")
-        print(f"Leaves data: {leaves}")
+        # Filter based on role
+        if role == "employee" and session_id in in_memory_sessions:
+            employee_email = in_memory_sessions[session_id]["email"]
+            leaves = [l for l in leaves if l.get("employee_email") == employee_email]
+
+        print(f"GET /get_leaves - Role: {role}, Returning {len(leaves)} leaves")
         
         return jsonify(leaves)
-
 
     except Exception as e:
         print(f"ERROR in /get_leaves: {str(e)}")
         
         return jsonify({
-
             "success": False,
             "message": str(e)
-
         }), 500
+
+# ---------------- APPROVE LEAVE ----------------
+
+@app.route("/approve_leave", methods=["POST"])
+def approve_leave():
+    try:
+        data = request.get_json()
+        leave_id = data.get("leave_id")
+        session_id = data.get("session_id")
+        manager_notes = data.get("manager_notes", "")
+
+        print(f"APPROVE LEAVE - Leave ID: {leave_id}, Session: {session_id}")
+
+        if session_id not in in_memory_sessions:
+            return jsonify({"success": False, "message": "Unauthorized"}), 401
+
+        session = in_memory_sessions[session_id]
+        if session["role"] != "manager":
+            return jsonify({"success": False, "message": "Only managers can approve leaves"}), 403
+
+        # Update in memory
+        for leave in in_memory_leaves:
+            if leave.get("id") == leave_id:
+                leave["status"] = "Approved"
+                leave["manager_notes"] = manager_notes
+                leave["approved_at"] = datetime.now().isoformat()
+                break
+
+        # Update in MongoDB if available
+        if use_mongodb:
+            leaves_collection.update_one(
+                {"id": leave_id},
+                {"$set": {
+                    "status": "Approved",
+                    "manager_notes": manager_notes,
+                    "approved_at": datetime.now().isoformat()
+                }}
+            )
+
+        print(f"✓ Leave {leave_id} approved")
+
+        return jsonify({
+            "success": True,
+            "message": "Leave approved successfully"
+        })
+
+    except Exception as e:
+        print(f"ERROR in /approve_leave: {str(e)}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+# ---------------- REJECT LEAVE ----------------
+
+@app.route("/reject_leave", methods=["POST"])
+def reject_leave():
+    try:
+        data = request.get_json()
+        leave_id = data.get("leave_id")
+        session_id = data.get("session_id")
+        manager_notes = data.get("manager_notes", "")
+
+        print(f"REJECT LEAVE - Leave ID: {leave_id}, Session: {session_id}")
+
+        if session_id not in in_memory_sessions:
+            return jsonify({"success": False, "message": "Unauthorized"}), 401
+
+        session = in_memory_sessions[session_id]
+        if session["role"] != "manager":
+            return jsonify({"success": False, "message": "Only managers can reject leaves"}), 403
+
+        # Update in memory
+        for leave in in_memory_leaves:
+            if leave.get("id") == leave_id:
+                leave["status"] = "Rejected"
+                leave["manager_notes"] = manager_notes
+                leave["rejected_at"] = datetime.now().isoformat()
+                break
+
+        # Update in MongoDB if available
+        if use_mongodb:
+            leaves_collection.update_one(
+                {"id": leave_id},
+                {"$set": {
+                    "status": "Rejected",
+                    "manager_notes": manager_notes,
+                    "rejected_at": datetime.now().isoformat()
+                }}
+            )
+
+        print(f"✓ Leave {leave_id} rejected")
+
+        return jsonify({
+            "success": True,
+            "message": "Leave rejected successfully"
+        })
+
+    except Exception as e:
+        print(f"ERROR in /reject_leave: {str(e)}")
+        return jsonify({"success": False, "message": str(e)}), 500
 
 # ---------------- RUN APP ----------------
 

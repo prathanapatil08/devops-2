@@ -392,4 +392,311 @@ button:hover {
 .leave-reason {
     color: #888;
 }
+
+/* ==================== TOAST NOTIFICATIONS ==================== */
+
+@keyframes slideIn {
+    from {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+}
+
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10000;
+}
+
+.toast {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    margin-bottom: 10px;
+    animation: slideIn 0.3s ease forwards;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    min-width: 300px;
+}
+
+.toast-success {
+    border-left: 4px solid #28a745;
+}
+
+.toast-success .toast-message {
+    color: #155724;
+}
+
+.toast-error {
+    border-left: 4px solid #dc3545;
+}
+
+.toast-error .toast-message {
+    color: #721c24;
+}
+
+.toast-info {
+    border-left: 4px solid #667eea;
+}
+
+.toast-info .toast-message {
+    color: #004085;
+}
+
+.toast-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 10px;
+}
+
+.toast-message {
+    flex-grow: 1;
+    font-weight: 500;
+}
+
+.toast-close {
+    background: none;
+    border: none;
+    color: #999;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s ease;
+}
+
+.toast-close:hover {
+    color: #333;
+}
+
+/* ==================== LEAVE CARD STYLES ==================== */
+
+.leave-card {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    margin-bottom: 15px;
+    transition: all 0.3s ease;
+    border-left: 4px solid #999;
+}
+
+.leave-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.leave-card.status-pending {
+    border-left: 4px solid #ffc107;
+}
+
+.leave-card.status-approved {
+    border-left: 4px solid #28a745;
+}
+
+.leave-card.status-rejected {
+    border-left: 4px solid #dc3545;
+}
+
+.leave-card-header {
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+    border-bottom: 1px solid #eee;
+}
+
+.leave-card-header h3 {
+    margin: 0;
+    color: #333;
+    font-size: 1.1em;
+}
+
+.leave-card-header .status-badge {
+    margin-left: 15px;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 12px;
+    font-size: 0.75em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-badge.pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-badge.approved {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-badge.rejected {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.leave-card-body {
+    padding: 20px;
+}
+
+.leave-card-body p {
+    margin: 8px 0;
+    color: #555;
+}
+
+.leave-card-body strong {
+    color: #333;
+}
+
+.small-text {
+    font-size: 0.9em;
+    color: #999;
+    margin-top: 10px !important;
+}
+
+/* ==================== MANAGER DASHBOARD ==================== */
+
+.manager-card {
+    position: relative;
+}
+
+.manager-card .leave-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 15px;
+}
+
+.manager-card .leave-card-header div {
+    flex-grow: 1;
+}
+
+.employee-email {
+    margin: 5px 0 0 0;
+    font-size: 0.9em;
+    color: #666;
+}
+
+.action-buttons {
+    padding: 15px 20px;
+    display: flex;
+    gap: 10px;
+    border-top: 1px solid #eee;
+    background: #f9f9f9;
+}
+
+.btn-approve, .btn-reject {
+    flex: 1;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.95em;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.btn-approve {
+    background: #28a745;
+    color: white;
+}
+
+.btn-approve:hover {
+    background: #218838;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.btn-approve:active {
+    transform: translateY(0);
+}
+
+.btn-reject {
+    background: #dc3545;
+    color: white;
+}
+
+.btn-reject:hover {
+    background: #c82333;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
+.btn-reject:active {
+    transform: translateY(0);
+}
+
+.manager-list {
+    padding: 0;
+}
+
+/* ==================== RESPONSIVE ==================== */
+
+@media (max-width: 768px) {
+    .toast-container {
+        left: 10px;
+        right: 10px;
+        top: 10px;
+    }
+
+    .toast {
+        min-width: auto;
+        max-width: 100%;
+    }
+
+    .leave-card-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .status-badge {
+        margin-left: 0;
+        margin-top: 10px;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+    }
+
+    .btn-approve, .btn-reject {
+        width: 100%;
+    }
+
+    .dashboard-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
 }
