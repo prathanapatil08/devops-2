@@ -1,68 +1,77 @@
 const API_URL = "/get_leaves";
 
-// Submit Leave Form
-const leaveForm = document.getElementById("leaveForm");
+// Wait for DOM to be fully loaded
+document.addEventListener("DOMContentLoaded", function() {
+    console.log("DOM Content Loaded - Initializing form handlers");
+    
+    // Submit Leave Form
+    const leaveForm = document.getElementById("leaveForm");
+    console.log("Leave form element:", leaveForm);
 
-if (leaveForm) {
-    leaveForm.addEventListener("submit", async function (e) {
-        e.preventDefault();
-        console.log("Form submitted");
+    if (leaveForm) {
+        console.log("Attaching submit event listener to leaveForm");
+        leaveForm.addEventListener("submit", async function (e) {
+            e.preventDefault();
+            console.log("Form submitted");
 
-        const name = document.getElementById("name").value;
-        const fromDate = document.getElementById("fromDate").value;
-        const toDate = document.getElementById("toDate").value;
-        const reason = document.getElementById("reason").value;
+            const name = document.getElementById("name").value;
+            const fromDate = document.getElementById("fromDate").value;
+            const toDate = document.getElementById("toDate").value;
+            const reason = document.getElementById("reason").value;
 
-        console.log("Form data:", { name, fromDate, toDate, reason });
+            console.log("Form data:", { name, fromDate, toDate, reason });
 
-        try {
-            const payload = {
-                name: name,
-                fromDate: fromDate,
-                toDate: toDate,
-                reason: reason
-            };
-            
-            console.log("Sending POST request to /submit_leave with:", payload);
-            
-            const res = await fetch("/submit_leave", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(payload)
-            });
+            try {
+                const payload = {
+                    name: name,
+                    fromDate: fromDate,
+                    toDate: toDate,
+                    reason: reason
+                };
+                
+                console.log("Sending POST request to /submit_leave with:", payload);
+                
+                const res = await fetch("/submit_leave", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(payload)
+                });
 
-            console.log("Response status:", res.status);
-            console.log("Response headers:", res.headers);
+                console.log("Response status:", res.status);
+                console.log("Response headers:", res.headers);
 
-            if (!res.ok) {
-                throw new Error(`Server error: ${res.status}`);
-            }
-
-            const data = await res.json();
-            console.log("Response data:", data);
-
-            if (data.success) {
-                const successMsg = document.getElementById("successMessage");
-                if (successMsg) {
-                    successMsg.style.display = "block";
+                if (!res.ok) {
+                    throw new Error(`Server error: ${res.status}`);
                 }
-                alert("Leave application submitted successfully!");
-                leaveForm.reset();
-                setTimeout(() => {
-                    window.location.href = "/dashboard";
-                }, 1000);
-            } else {
-                alert("Error: " + (data.message || "Failed to submit leave application"));
-            }
 
-        } catch (err) {
-            console.error("Error submitting leave:", err);
-            alert("Error submitting leave application: " + err.message);
-        }
-    });
-}
+                const data = await res.json();
+                console.log("Response data:", data);
+
+                if (data.success) {
+                    const successMsg = document.getElementById("successMessage");
+                    if (successMsg) {
+                        successMsg.style.display = "block";
+                    }
+                    alert("Leave application submitted successfully!");
+                    leaveForm.reset();
+                    setTimeout(() => {
+                        window.location.href = "/dashboard";
+                    }, 1000);
+                } else {
+                    alert("Error: " + (data.message || "Failed to submit leave application"));
+                }
+
+            } catch (err) {
+                console.error("Error submitting leave:", err);
+                alert("Error submitting leave application: " + err.message);
+            }
+        });
+    } else {
+        console.log("Leave form not found on this page");
+    }
+});
 
 // Dashboard filter
 let currentFilter = "all";
@@ -142,30 +151,34 @@ function renderLeaveList(leaves, filter) {
 }
 
 // Filter buttons
-document.querySelectorAll(".filter-btn").forEach(btn => {
-    btn.addEventListener("click", (e) => {
-        document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
-        e.target.classList.add("active");
-        currentFilter = e.target.dataset.filter;
+document.addEventListener("DOMContentLoaded", function() {
+    document.querySelectorAll(".filter-btn").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+            document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+            e.target.classList.add("active");
+            currentFilter = e.target.dataset.filter;
+            loadLeaves();
+        });
+    });
+
+    // Load dashboard
+    if (document.getElementById("leaveList")) {
+        console.log("Dashboard page detected, loading leaves");
         loadLeaves();
+        
+        // Auto-refresh dashboard every 3 seconds
+        setInterval(() => {
+            console.log("Auto-refreshing dashboard");
+            loadLeaves();
+        }, 3000);
+    }
+
+    // Navigation active link
+    const currentPath = window.location.pathname;
+
+    document.querySelectorAll(".nav-menu a").forEach(link => {
+        if (link.getAttribute("href") === currentPath) {
+            link.classList.add("active");
+        }
     });
 });
-
-// Load dashboard
-if (document.getElementById("leaveList")) {
-    console.log("Dashboard page detected, loading leaves");
-    loadLeaves();
-    
-    // Auto-refresh dashboard every 3 seconds
-    setInterval(() => {
-        console.log("Auto-refreshing dashboard");
-        loadLeaves();
-    }, 3000);
-}
-
-// Navigation active link
-const currentPath = window.location.pathname;
-
-document.querySelectorAll(".nav-menu a").forEach(link => {
-    if (link.getAttribute("href") === currentPath) {
-        link.classList.add("active");
