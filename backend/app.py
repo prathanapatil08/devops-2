@@ -2,17 +2,26 @@ from flask import Flask, send_from_directory, request, jsonify
 from flask_cors import CORS
 from pymongo import MongoClient
 import os
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 from datetime import datetime
 
-load_dotenv()
+dotenv_path = find_dotenv()
+if dotenv_path:
+    load_dotenv(dotenv_path)
+    print(f"✓ Loaded environment from {dotenv_path}")
+else:
+    print("⚠ .env file not found; relying on environment variables only")
 
 app = Flask(__name__, static_folder="../frontend")
 CORS(app)
 
-# MongoDB Connection
-MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
-DB_NAME = os.getenv("DB_NAME", "devops_leave_management")
+# MongoDB Atlas Connection
+MONGODB_URI = os.getenv("MONGODB_URI")
+if not MONGODB_URI:
+    raise EnvironmentError("MONGODB_URI is not set in the environment or .env file")
+
+DB_NAME = os.getenv("DB_NAME", "mydata")
+print(f"✓ MongoDB settings: DB_NAME={DB_NAME}")
 
 # In-memory session tracking only
 in_memory_sessions = {}
