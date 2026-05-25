@@ -38,10 +38,27 @@ try:
 
     db = mongo_client[DB_NAME]
     leaves_collection = db["leaves"]
+    users_collection = db["users"]
 
     print("✓ Connected to MongoDB")
 
     use_mongodb = True
+
+    # Seed default users if not present
+    default_users = [
+        {"role": "manager", "email": "manager1@gmail.com", "password": "mgr@123", "name": "IT Manager"},
+        {"role": "employee", "email": "employee1@gmail.com", "password": "emp@123", "name": "Employee One"},
+        {"role": "employee", "email": "employee2@gmail.com", "password": "emp@123", "name": "Employee Two"},
+        {"role": "employee", "email": "employee3@gmail.com", "password": "emp@123", "name": "Employee Three"},
+        {"role": "employee", "email": "employee4@gmail.com", "password": "emp@123", "name": "Employee Four"}
+    ]
+
+    for user in default_users:
+        users_collection.update_one(
+            {"email": user["email"]},
+            {"$set": user},
+            upsert=True
+        )
 
 except Exception as e:
 
@@ -51,6 +68,7 @@ except Exception as e:
     mongo_client = None
     db = None
     leaves_collection = None
+    users_collection = None
 
     use_mongodb = False
 
@@ -66,20 +84,28 @@ def login():
 
         print(f"Login attempt - Email: {email}, Role: {role}")
 
-        # Validate credentials
-        if role not in DEMO_USERS:
+        if role not in ["employee", "manager"]:
             return jsonify({"success": False, "message": "Invalid role"}), 400
 
-        user = DEMO_USERS[role]
-        if user["email"] != email or user["password"] != password:
+        user = None
+        if use_mongodb and users_collection is not None:
+            user = users_collection.find_one(
+                {"email": email, "password": password, "role": role},
+                {"_id": 0}
+            )
+        else:
+            user = DEMO_USERS.get(role)
+            if user and (user["email"] != email or user["password"] != password):
+                user = None
+
+        if not user:
             return jsonify({"success": False, "message": "Invalid email or password"}), 401
 
-        # Create session
         session_id = f"{email}_{datetime.now().timestamp()}"
         in_memory_sessions[session_id] = {
             "email": email,
             "role": role,
-            "name": "Employee" if role == "employee" else "Manager",
+            "name": user.get("name", "Employee" if role == "employee" else "Manager"),
             "logged_in_at": datetime.now().isoformat()
         }
 
