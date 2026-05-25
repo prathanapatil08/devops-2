@@ -14,20 +14,7 @@ CORS(app)
 MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
 DB_NAME = os.getenv("DB_NAME", "devops_leave_management")
 
-# Demo Credentials
-DEMO_USERS = {
-    "employee": {
-        "email": "employee1@gmail.com",
-        "password": "emp@123"
-    },
-    "manager": {
-        "email": "manager1@gmail.com",
-        "password": "mgr@123"
-    }
-}
-
-# In-memory storage
-in_memory_leaves = []
+# In-memory session tracking only
 in_memory_sessions = {}
 
 try:
@@ -61,16 +48,9 @@ try:
         )
 
 except Exception as e:
-
     print(f"⚠ MongoDB not available: {e}")
-    print("⚠ Using in-memory storage instead")
-
-    mongo_client = None
-    db = None
-    leaves_collection = None
-    users_collection = None
-
-    use_mongodb = False
+    print("⚠ The application requires MongoDB Atlas to run")
+    raise
 
 # ---------------- LOGIN ----------------
 
@@ -87,16 +67,13 @@ def login():
         if role not in ["employee", "manager"]:
             return jsonify({"success": False, "message": "Invalid role"}), 400
 
-        user = None
-        if use_mongodb and users_collection is not None:
-            user = users_collection.find_one(
-                {"email": email, "password": password, "role": role},
-                {"_id": 0}
-            )
-        else:
-            user = DEMO_USERS.get(role)
-            if user and (user["email"] != email or user["password"] != password):
-                user = None
+        if not use_mongodb or users_collection is None:
+            raise Exception("MongoDB Atlas is required for authentication")
+
+        user = users_collection.find_one(
+            {"email": email, "password": password, "role": role},
+            {"_id": 0}
+        )
 
         if not user:
             return jsonify({"success": False, "message": "Invalid email or password"}), 401
@@ -210,19 +187,12 @@ def submit_leave():
         
         print(f"Leave data to store: {leave_data}")
 
-        # Save to MongoDB
-        if use_mongodb:
-            print("Saving to MongoDB")
-            leaves_collection.insert_one(leave_data)
-            print("✓ Saved to MongoDB")
+        if not use_mongodb or leaves_collection is None:
+            raise Exception("MongoDB Atlas is required for leave storage")
 
-        # Save in memory
-        else:
-            print("Saving to in-memory storage")
-            in_memory_leaves.append(leave_data)
-            print(f"✓ Saved to in-memory storage. Total leaves: {len(in_memory_leaves)}")
-            print(f"Current in_memory_leaves: {in_memory_leaves}")
-
+        print("Saving to MongoDB")
+        leaves_collection.insert_one(leave_data)
+        print("✓ Saved to MongoDB")
         print("="*50)
         
         return jsonify({
@@ -249,11 +219,11 @@ def get_leaves():
     try:
         session_id = request.args.get("session_id")
         role = request.args.get("role", "employee")
-        
-        if use_mongodb:
-            leaves = list(leaves_collection.find({}, {"_id": 0}))
-        else:
-            leaves = in_memory_leaves
+
+        if not use_mongodb or leaves_collection is None:
+            raise Exception("MongoDB Atlas is required to retrieve leave data")
+
+        leaves = list(leaves_collection.find({}, {"_id": 0}))
 
         # Filter based on role
         if role == "employee" and session_id in in_memory_sessions:
@@ -291,24 +261,17 @@ def approve_leave():
         if session["role"] != "manager":
             return jsonify({"success": False, "message": "Only managers can approve leaves"}), 403
 
-        # Update in memory
-        for leave in in_memory_leaves:
-            if leave.get("id") == leave_id:
-                leave["status"] = "Approved"
-                leave["manager_notes"] = manager_notes
-                leave["approved_at"] = datetime.now().isoformat()
-                break
+        if not use_mongodb or leaves_collection is None:
+            raise Exception("MongoDB Atlas is required to approve leave applications")
 
-        # Update in MongoDB if available
-        if use_mongodb:
-            leaves_collection.update_one(
-                {"id": leave_id},
-                {"$set": {
-                    "status": "Approved",
-                    "manager_notes": manager_notes,
-                    "approved_at": datetime.now().isoformat()
-                }}
-            )
+        leaves_collection.update_one(
+            {"id": leave_id},
+            {"$set": {
+                "status": "Approved",
+                "manager_notes": manager_notes,
+                "approved_at": datetime.now().isoformat()
+            }}
+        )
 
         print(f"✓ Leave {leave_id} approved")
 
@@ -340,24 +303,17 @@ def reject_leave():
         if session["role"] != "manager":
             return jsonify({"success": False, "message": "Only managers can reject leaves"}), 403
 
-        # Update in memory
-        for leave in in_memory_leaves:
-            if leave.get("id") == leave_id:
-                leave["status"] = "Rejected"
-                leave["manager_notes"] = manager_notes
-                leave["rejected_at"] = datetime.now().isoformat()
-                break
+        if not use_mongodb or leaves_collection is None:
+            raise Exception("MongoDB Atlas is required to reject leave applications")
 
-        # Update in MongoDB if available
-        if use_mongodb:
-            leaves_collection.update_one(
-                {"id": leave_id},
-                {"$set": {
-                    "status": "Rejected",
-                    "manager_notes": manager_notes,
-                    "rejected_at": datetime.now().isoformat()
-                }}
-            )
+        leaves_collection.update_one(
+            {"id": leave_id},
+            {"$set": {
+                "status": "Rejected",
+                "manager_notes": manager_notes,
+                "rejected_at": datetime.now().isoformat()
+            }}
+        )
 
         print(f"✓ Leave {leave_id} rejected")
 
