@@ -151,6 +151,11 @@ def dashboard():
 def about():
     return send_from_directory("../frontend", "about.html")
 
+# ---------------- CONTACT ----------------
+@app.route("/contact")
+def contact():
+    return send_from_directory("../frontend", "contact.html")
+
 # ---------------- CSS ----------------
 
 @app.route("/style.css")
