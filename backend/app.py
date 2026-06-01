@@ -188,6 +188,7 @@ def submit_leave():
             "name": data.get("name"),
             "fromDate": data.get("fromDate"),
             "toDate": data.get("toDate"),
+            "leaveType": data.get("leaveType", "Casual"),
             "reason": data.get("reason"),
             "status": "Pending",
             "submitted_at": datetime.now().isoformat(),

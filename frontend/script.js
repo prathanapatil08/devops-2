@@ -132,6 +132,7 @@ document.addEventListener("DOMContentLoaded", function() {
             const name = document.getElementById("name").value;
             const fromDate = document.getElementById("fromDate").value;
             const toDate = document.getElementById("toDate").value;
+            const leaveType = document.getElementById("leaveType").value;
             const reason = document.getElementById("reason").value;
 
             try {
@@ -142,6 +143,7 @@ document.addEventListener("DOMContentLoaded", function() {
                         name: name,
                         fromDate: fromDate,
                         toDate: toDate,
+                        leaveType: leaveType,
                         reason: reason,
                         session_id: currentSession.sessionId
                     })
@@ -265,6 +267,7 @@ function renderEmployeeLeaves(leaves) {
             <div class="leave-card-body">
                 <p><strong>From:</strong> ${leave.fromDate}</p>
                 <p><strong>To:</strong> ${leave.toDate}</p>
+                <p><strong>Type:</strong> ${leave.leaveType || "Not specified"}</p>
                 <p><strong>Reason:</strong> ${leave.reason}</p>
                 ${leave.manager_notes ? `<p><strong>Manager Notes:</strong> ${leave.manager_notes}</p>` : ""}
                 <p class="small-text"><strong>Applied:</strong> ${new Date(leave.submitted_at).toLocaleDateString()}</p>
@@ -296,6 +299,8 @@ function updateManagerStats(leaves) {
     const pendingLeaves = document.getElementById("managerPendingLeaves");
     const approvedLeaves = document.getElementById("managerApprovedLeaves");
     const rejectedLeaves = document.getElementById("managerRejectedLeaves");
+    const casualLeaves = document.getElementById("managerCasualLeaves");
+    const medicalLeaves = document.getElementById("managerMedicalLeaves");
 
     if (!totalLeaves) return;
 
@@ -303,6 +308,8 @@ function updateManagerStats(leaves) {
     pendingLeaves.textContent = leaves.filter(l => l.status === "Pending").length;
     approvedLeaves.textContent = leaves.filter(l => l.status === "Approved").length;
     rejectedLeaves.textContent = leaves.filter(l => l.status === "Rejected").length;
+    casualLeaves.textContent = leaves.filter(l => (l.leaveType || "").toLowerCase() === "casual").length;
+    medicalLeaves.textContent = leaves.filter(l => (l.leaveType || "").toLowerCase() === "medical").length;
 }
 
 function renderManagerLeaves(leaves) {
@@ -349,6 +356,7 @@ function renderManagerLeaves(leaves) {
             <div class="leave-card-body">
                 <p><strong>From:</strong> ${leave.fromDate}</p>
                 <p><strong>To:</strong> ${leave.toDate}</p>
+                <p><strong>Type:</strong> ${leave.leaveType || "Not specified"}</p>
                 <p><strong>Reason:</strong> ${leave.reason}</p>
                 ${leave.manager_notes ? `<p><strong>Manager Notes:</strong> ${leave.manager_notes}</p>` : ""}
                 <p class="small-text"><strong>Applied:</strong> ${new Date(leave.submitted_at).toLocaleDateString()}</p>
