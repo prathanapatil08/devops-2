@@ -118,6 +118,11 @@ document.addEventListener("DOMContentLoaded", function() {
     // Handle apply leave form (employee)
     const leaveForm = document.getElementById("leaveForm");
     if (leaveForm) {
+        if (!isLoggedIn()) {
+            window.location.href = "/login.html";
+            return;
+        }
+
         console.log("Apply leave form found");
         leaveForm.addEventListener("submit", async function(e) {
             e.preventDefault();
@@ -150,6 +155,12 @@ document.addEventListener("DOMContentLoaded", function() {
                 });
 
                 const data = await res.json();
+
+                if (!res.ok && (res.status === 401 || res.status === 403)) {
+                    showToast("Session expired. Please log in again.", "error");
+                    logout();
+                    return;
+                }
 
                 if (data.success) {
                     showToast("Leave application submitted successfully!", "success");
@@ -220,6 +231,12 @@ async function loadEmployeeLeaves() {
         if (!isLoggedIn()) return;
 
         const res = await fetch(`/get_leaves?session_id=${currentSession.sessionId}&role=employee`);
+        if (!res.ok && (res.status === 401 || res.status === 403)) {
+            showToast("Session expired. Please log in again.", "error");
+            logout();
+            return;
+        }
+
         const leaves = await res.json();
 
         updateEmployeeStats(leaves);
@@ -285,6 +302,12 @@ async function loadManagerLeaves() {
         if (!isLoggedIn()) return;
 
         const res = await fetch(`/get_leaves?session_id=${currentSession.sessionId}&role=manager`);
+        if (!res.ok && (res.status === 401 || res.status === 403)) {
+            showToast("Session expired. Please log in again.", "error");
+            logout();
+            return;
+        }
+
         const leaves = await res.json();
 
         updateManagerStats(leaves);
@@ -392,6 +415,11 @@ async function approveLeave(leaveId, sessionId) {
         });
 
         const data = await res.json();
+        if (!res.ok && (res.status === 401 || res.status === 403)) {
+            showToast("Session expired. Please log in again.", "error");
+            logout();
+            return;
+        }
 
         if (data.success) {
             showToast("✓ Leave approved successfully!", "success");
@@ -421,6 +449,11 @@ async function rejectLeave(leaveId, sessionId) {
         });
 
         const data = await res.json();
+        if (!res.ok && (res.status === 401 || res.status === 403)) {
+            showToast("Session expired. Please log in again.", "error");
+            logout();
+            return;
+        }
 
         if (data.success) {
             showToast("Leave rejected", "info");

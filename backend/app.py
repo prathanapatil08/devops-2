@@ -35,6 +35,7 @@ try:
     db = mongo_client[DB_NAME]
     leaves_collection = db["leaves"]
     users_collection = db["users"]
+    sessions_collection = db["sessions"]
 
     print("✓ Connected to MongoDB")
 
@@ -60,6 +61,22 @@ except Exception as e:
     print(f"⚠ MongoDB not available: {e}")
     print("⚠ The application requires MongoDB Atlas to run")
     raise
+
+
+def get_session(session_id):
+    if not session_id:
+        return None
+
+    if session_id in in_memory_sessions:
+        return in_memory_sessions[session_id]
+
+    if use_mongodb and sessions_collection is not None:
+        session = sessions_collection.find_one({"session_id": session_id}, {"_id": 0})
+        if session:
+            in_memory_sessions[session_id] = session
+        return session
+
+    return None
 
 # ---------------- LOGIN ----------------
 
@@ -88,12 +105,21 @@ def login():
             return jsonify({"success": False, "message": "Invalid email or password"}), 401
 
         session_id = f"{email}_{datetime.now().timestamp()}"
-        in_memory_sessions[session_id] = {
+        session_data = {
             "email": email,
             "role": role,
             "name": user.get("name", "Employee" if role == "employee" else "Manager"),
             "logged_in_at": datetime.now().isoformat()
         }
+
+        in_memory_sessions[session_id] = session_data
+
+        if use_mongodb and sessions_collection is not None:
+            sessions_collection.update_one(
+                {"session_id": session_id},
+                {"$set": {"session_id": session_id, **session_data}},
+                upsert=True
+            )
 
         print(f"✓ Login successful - Session ID: {session_id}")
 
@@ -177,10 +203,11 @@ def submit_leave():
         print("POST /submit_leave - Request received")
         print(f"Request data: {data}")
 
-        if not session_id or session_id not in in_memory_sessions:
+        session = get_session(session_id)
+        if not session:
             return jsonify({"success": False, "message": "Unauthorized"}), 401
 
-        employee_email = in_memory_sessions[session_id]["email"]
+        employee_email = session["email"]
 
         leave_data = {
             "id": f"leave_{datetime.now().timestamp()}",
@@ -234,11 +261,16 @@ def get_leaves():
             raise Exception("MongoDB Atlas is required to retrieve leave data")
 
         leaves = list(leaves_collection.find({}, {"_id": 0}))
+        session = get_session(session_id)
 
-        # Filter based on role
-        if role == "employee" and session_id in in_memory_sessions:
-            employee_email = in_memory_sessions[session_id]["email"]
+        if role == "employee":
+            if not session:
+                return jsonify({"success": False, "message": "Unauthorized"}), 401
+            employee_email = session["email"]
             leaves = [l for l in leaves if l.get("employee_email") == employee_email]
+        elif role == "manager":
+            if not session or session.get("role") != "manager":
+                return jsonify({"success": False, "message": "Unauthorized"}), 401
 
         print(f"GET /get_leaves - Role: {role}, Returning {len(leaves)} leaves")
         
@@ -264,10 +296,10 @@ def approve_leave():
 
         print(f"APPROVE LEAVE - Leave ID: {leave_id}, Session: {session_id}")
 
-        if session_id not in in_memory_sessions:
+        session = get_session(session_id)
+        if not session:
             return jsonify({"success": False, "message": "Unauthorized"}), 401
 
-        session = in_memory_sessions[session_id]
         if session["role"] != "manager":
             return jsonify({"success": False, "message": "Only managers can approve leaves"}), 403
 
@@ -306,10 +338,10 @@ def reject_leave():
 
         print(f"REJECT LEAVE - Leave ID: {leave_id}, Session: {session_id}")
 
-        if session_id not in in_memory_sessions:
+        session = get_session(session_id)
+        if not session:
             return jsonify({"success": False, "message": "Unauthorized"}), 401
 
-        session = in_memory_sessions[session_id]
         if session["role"] != "manager":
             return jsonify({"success": False, "message": "Only managers can reject leaves"}), 403
 
