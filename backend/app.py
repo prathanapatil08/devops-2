@@ -263,6 +263,15 @@ def get_leaves():
         leaves = list(leaves_collection.find({}, {"_id": 0}))
         session = get_session(session_id)
 
+        for leave in leaves:
+            if not leave.get("leaveType"):
+                leave["leaveType"] = "Casual"
+                if use_mongodb and leaves_collection is not None and leave.get("id"):
+                    leaves_collection.update_one(
+                        {"id": leave["id"]},
+                        {"$set": {"leaveType": "Casual"}}
+                    )
+
         if role == "employee":
             if not session:
                 return jsonify({"success": False, "message": "Unauthorized"}), 401

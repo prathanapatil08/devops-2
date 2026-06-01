@@ -167,7 +167,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     leaveForm.reset();
                     setTimeout(() => {
                         window.location.href = "/employee-dashboard";
-                    }, 1500);
+                    }, 2000);
                 } else {
                     showToast("Error: " + data.message, "error");
                 }
