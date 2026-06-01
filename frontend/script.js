@@ -38,6 +38,18 @@ let currentSession = {
     email: localStorage.getItem("userEmail")
 };
 
+const employeeDashboardState = {
+    leaves: [],
+    statusFilter: "all",
+    typeFilter: "all"
+};
+
+const managerDashboardState = {
+    leaves: [],
+    statusFilter: "all",
+    typeFilter: "all"
+};
+
 function isLoggedIn() {
     return currentSession.sessionId && currentSession.role;
 }
@@ -188,6 +200,7 @@ document.addEventListener("DOMContentLoaded", function() {
             return;
         }
 
+        setupEmployeeFilters();
         loadEmployeeLeaves();
         
         // Refresh every 2 seconds
@@ -206,6 +219,7 @@ document.addEventListener("DOMContentLoaded", function() {
             return;
         }
 
+        setupManagerFilters();
         loadManagerLeaves();
         
         // Refresh every 2 seconds
@@ -239,8 +253,9 @@ async function loadEmployeeLeaves() {
 
         const leaves = await res.json();
 
+        employeeDashboardState.leaves = leaves;
         updateEmployeeStats(leaves);
-        renderEmployeeLeaves(leaves);
+        renderEmployeeLeaves();
     } catch (err) {
         console.error("Error loading leaves:", err);
     }
@@ -260,7 +275,16 @@ function updateEmployeeStats(leaves) {
     rejectedLeaves.textContent = leaves.filter(l => l.status === "Rejected").length;
 }
 
-function renderEmployeeLeaves(leaves) {
+function getFilteredEmployeeLeaves() {
+    return employeeDashboardState.leaves.filter(leave => {
+        const matchesStatus = employeeDashboardState.statusFilter === "all" || leave.status.toLowerCase() === employeeDashboardState.statusFilter;
+        const matchesType = employeeDashboardState.typeFilter === "all" || (leave.leaveType || "").toLowerCase() === employeeDashboardState.typeFilter;
+        return matchesStatus && matchesType;
+    });
+}
+
+function renderEmployeeLeaves(leaves = employeeDashboardState.leaves) {
+    leaves = getFilteredEmployeeLeaves();
     const leaveList = document.getElementById("employeeLeaveList");
     if (!leaveList) return;
 
@@ -310,8 +334,9 @@ async function loadManagerLeaves() {
 
         const leaves = await res.json();
 
+        managerDashboardState.leaves = leaves;
         updateManagerStats(leaves);
-        renderManagerLeaves(leaves);
+        renderManagerLeaves();
     } catch (err) {
         console.error("Error loading leaves:", err);
     }
@@ -335,7 +360,16 @@ function updateManagerStats(leaves) {
     medicalLeaves.textContent = leaves.filter(l => (l.leaveType || "").toLowerCase() === "medical").length;
 }
 
-function renderManagerLeaves(leaves) {
+function getFilteredManagerLeaves() {
+    return managerDashboardState.leaves.filter(leave => {
+        const matchesStatus = managerDashboardState.statusFilter === "all" || leave.status.toLowerCase() === managerDashboardState.statusFilter;
+        const matchesType = managerDashboardState.typeFilter === "all" || (leave.leaveType || "").toLowerCase() === managerDashboardState.typeFilter;
+        return matchesStatus && matchesType;
+    });
+}
+
+function renderManagerLeaves(leaves = managerDashboardState.leaves) {
+    leaves = getFilteredManagerLeaves();
     const leaveList = document.getElementById("managerLeaveList");
     if (!leaveList) return;
 
@@ -389,6 +423,48 @@ function renderManagerLeaves(leaves) {
 
         leaveList.appendChild(div);
     });
+}
+
+function setupEmployeeFilters() {
+    const buttons = document.querySelectorAll("#employeeFilterButtons .filter-btn");
+    const typeSelect = document.getElementById("employeeTypeFilter");
+
+    buttons.forEach(button => {
+        button.addEventListener("click", () => {
+            buttons.forEach(btn => btn.classList.remove("active"));
+            button.classList.add("active");
+            employeeDashboardState.statusFilter = button.dataset.filter;
+            renderEmployeeLeaves();
+        });
+    });
+
+    if (typeSelect) {
+        typeSelect.addEventListener("change", () => {
+            employeeDashboardState.typeFilter = typeSelect.value;
+            renderEmployeeLeaves();
+        });
+    }
+}
+
+function setupManagerFilters() {
+    const buttons = document.querySelectorAll("#managerFilterButtons .filter-btn");
+    const typeSelect = document.getElementById("managerTypeFilter");
+
+    buttons.forEach(button => {
+        button.addEventListener("click", () => {
+            buttons.forEach(btn => btn.classList.remove("active"));
+            button.classList.add("active");
+            managerDashboardState.statusFilter = button.dataset.filter;
+            renderManagerLeaves();
+        });
+    });
+
+    if (typeSelect) {
+        typeSelect.addEventListener("change", () => {
+            managerDashboardState.typeFilter = typeSelect.value;
+            renderManagerLeaves();
+        });
+    }
 }
 
 async function approveLeaveDirect(leaveId, sessionId) {

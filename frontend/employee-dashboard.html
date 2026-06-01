@@ -27,7 +27,7 @@
             <span id="employeeTotalLeaves">0</span>
         </div>
         <div class="stat-card">
-            <h3>Pending(this is edited)</h3>
+            <h3>Pending</h3>
             <span id="employeePendingLeaves" class="pending">0</span>
         </div>
         <div class="stat-card">
@@ -40,7 +40,23 @@
         </div>
     </div>
 
-    <h2>My Leave Applications(edited)</h2>
+    <h2>My Leave Applications</h2>
+    <div class="filter-panel">
+        <div id="employeeFilterButtons" class="filter-buttons">
+            <button type="button" class="filter-btn active" data-filter="all">All</button>
+            <button type="button" class="filter-btn" data-filter="pending">Pending</button>
+            <button type="button" class="filter-btn" data-filter="approved">Approved</button>
+            <button type="button" class="filter-btn" data-filter="rejected">Rejected</button>
+        </div>
+        <div class="type-filter">
+            <label for="employeeTypeFilter">Type:</label>
+            <select id="employeeTypeFilter">
+                <option value="all">All</option>
+                <option value="casual">Casual</option>
+                <option value="medical">Medical</option>
+            </select>
+        </div>
+    </div>
     <ul id="employeeLeaveList" class="leave-list"></ul>
 </div>
 
