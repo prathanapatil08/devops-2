@@ -423,13 +423,13 @@ function renderManagerLeaves(leaves = managerDashboardState.leaves) {
 }
 
 function setupEmployeeFilters() {
-    const cards = document.querySelectorAll(".dashboard-stats .filter-card");
+    const buttons = document.querySelectorAll("#employeeFilterButtons .filter-btn");
 
-    cards.forEach(card => {
-        card.addEventListener("click", () => {
-            cards.forEach(c => c.classList.remove("active"));
-            card.classList.add("active");
-            employeeDashboardState.statusFilter = card.dataset.filter;
+    buttons.forEach(button => {
+        button.addEventListener("click", () => {
+            buttons.forEach(btn => btn.classList.remove("active"));
+            button.classList.add("active");
+            employeeDashboardState.statusFilter = button.dataset.filter;
             renderEmployeeLeaves();
         });
     });
