@@ -40,8 +40,7 @@ let currentSession = {
 
 const employeeDashboardState = {
     leaves: [],
-    statusFilter: "all",
-    typeFilter: "all"
+    statusFilter: "all"
 };
 
 const managerDashboardState = {
@@ -277,9 +276,7 @@ function updateEmployeeStats(leaves) {
 
 function getFilteredEmployeeLeaves() {
     return employeeDashboardState.leaves.filter(leave => {
-        const matchesStatus = employeeDashboardState.statusFilter === "all" || leave.status.toLowerCase() === employeeDashboardState.statusFilter;
-        const matchesType = employeeDashboardState.typeFilter === "all" || (leave.leaveType || "").toLowerCase() === employeeDashboardState.typeFilter;
-        return matchesStatus && matchesType;
+        return employeeDashboardState.statusFilter === "all" || leave.status.toLowerCase() === employeeDashboardState.statusFilter;
     });
 }
 
@@ -426,24 +423,16 @@ function renderManagerLeaves(leaves = managerDashboardState.leaves) {
 }
 
 function setupEmployeeFilters() {
-    const buttons = document.querySelectorAll("#employeeFilterButtons .filter-btn");
-    const typeSelect = document.getElementById("employeeTypeFilter");
+    const cards = document.querySelectorAll(".dashboard-stats .filter-card");
 
-    buttons.forEach(button => {
-        button.addEventListener("click", () => {
-            buttons.forEach(btn => btn.classList.remove("active"));
-            button.classList.add("active");
-            employeeDashboardState.statusFilter = button.dataset.filter;
+    cards.forEach(card => {
+        card.addEventListener("click", () => {
+            cards.forEach(c => c.classList.remove("active"));
+            card.classList.add("active");
+            employeeDashboardState.statusFilter = card.dataset.filter;
             renderEmployeeLeaves();
         });
     });
-
-    if (typeSelect) {
-        typeSelect.addEventListener("change", () => {
-            employeeDashboardState.typeFilter = typeSelect.value;
-            renderEmployeeLeaves();
-        });
-    }
 }
 
 function setupManagerFilters() {

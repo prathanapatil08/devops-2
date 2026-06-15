@@ -22,41 +22,25 @@
     <h1>My Leave Dashboard</h1>
 
     <div class="dashboard-stats">
-        <div class="stat-card">
+        <div class="stat-card filter-card active" data-filter="all">
             <h3>Total Requests</h3>
             <span id="employeeTotalLeaves">0</span>
         </div>
-        <div class="stat-card">
+        <div class="stat-card filter-card" data-filter="pending">
             <h3>Pending</h3>
             <span id="employeePendingLeaves" class="pending">0</span>
         </div>
-        <div class="stat-card">
+        <div class="stat-card filter-card" data-filter="approved">
             <h3>Approved</h3>
             <span id="employeeApprovedLeaves" class="approved">0</span>
         </div>
-        <div class="stat-card">
+        <div class="stat-card filter-card" data-filter="rejected">
             <h3>Rejected</h3>
             <span id="employeeRejectedLeaves" class="rejected">0</span>
         </div>
     </div>
 
     <h2>My Leave Applications</h2>
-    <div class="filter-panel">
-        <div id="employeeFilterButtons" class="filter-buttons">
-            <button type="button" class="filter-btn active" data-filter="all">All</button>
-            <button type="button" class="filter-btn" data-filter="pending">Pending</button>
-            <button type="button" class="filter-btn" data-filter="approved">Approved</button>
-            <button type="button" class="filter-btn" data-filter="rejected">Rejected</button>
-        </div>
-        <div class="type-filter">
-            <label for="employeeTypeFilter">Type:</label>
-            <select id="employeeTypeFilter">
-                <option value="all">All</option>
-                <option value="casual">Casual</option>
-                <option value="medical">Medical</option>
-            </select>
-        </div>
-    </div>
     <ul id="employeeLeaveList" class="leave-list"></ul>
 </div>
 

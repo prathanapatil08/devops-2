@@ -222,6 +222,16 @@ button:hover {
     border-radius: 12px;
     text-align: center;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border 0.2s ease;
+    border: 2px solid transparent;
+}
+
+.stat-card:hover,
+.stat-card.active {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.15);
+    border-color: rgba(102, 126, 234, 0.5);
 }
 
 .stat-card h3 {
