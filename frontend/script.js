@@ -39,7 +39,8 @@ let currentSession = {
 };
 
 const employeeDashboardState = {
-    leaves: []
+    leaves: [],
+    statusFilter: "all"
 };
 
 const managerDashboardState = {
@@ -189,8 +190,8 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     // Handle employee dashboard
-    const employeeLeaveList = document.getElementById("employeeLeaveList");
-    if (employeeLeaveList) {
+    const employeeDashboardStats = document.getElementById("employeeTotalLeaves");
+    if (employeeDashboardStats) {
         console.log("Employee dashboard detected");
         
         if (!isLoggedIn()) {
@@ -198,17 +199,10 @@ document.addEventListener("DOMContentLoaded", function() {
             return;
         }
 
-        loadEmployeeLeaves();
-        
-        // Refresh every 2 seconds
-        setInterval(() => {
-            loadEmployeeLeaves();
-        }, 2000);
-    }
-
+        setupEmployeeFilters();
     // Handle manager dashboard
-    const managerLeaveList = document.getElementById("managerLeaveList");
-    if (managerLeaveList) {
+    const managerDashboardStats = document.getElementById("managerTotalLeaves");
+    if (managerDashboardStats) {
         console.log("Manager dashboard detected");
         
         if (!isLoggedIn() || currentSession.role !== "manager") {
@@ -272,7 +266,14 @@ function updateEmployeeStats(leaves) {
     rejectedLeaves.textContent = leaves.filter(l => l.status === "Rejected").length;
 }
 
+function getFilteredEmployeeLeaves() {
+    return employeeDashboardState.leaves.filter(leave => {
+        return employeeDashboardState.statusFilter === "all" || leave.status.toLowerCase() === employeeDashboardState.statusFilter;
+    });
+}
+
 function renderEmployeeLeaves(leaves = employeeDashboardState.leaves) {
+    leaves = getFilteredEmployeeLeaves();
     const leaveList = document.getElementById("employeeLeaveList");
     if (!leaveList) return;
 
@@ -414,7 +415,16 @@ function renderManagerLeaves(leaves = managerDashboardState.leaves) {
 }
 
 function setupEmployeeFilters() {
-    // Employee dashboard does not use status filter buttons.
+    const buttons = document.querySelectorAll("#employeeFilterButtons .filter-btn");
+
+    buttons.forEach(button => {
+        button.addEventListener("click", () => {
+            buttons.forEach(btn => btn.classList.remove("active"));
+            button.classList.add("active");
+            employeeDashboardState.statusFilter = button.dataset.filter;
+            renderEmployeeLeaves();
+        });
+    });
 }
 
 function setupManagerFilters() {
