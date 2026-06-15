@@ -39,8 +39,7 @@ let currentSession = {
 };
 
 const employeeDashboardState = {
-    leaves: [],
-    statusFilter: "all"
+    leaves: []
 };
 
 const managerDashboardState = {
@@ -199,7 +198,6 @@ document.addEventListener("DOMContentLoaded", function() {
             return;
         }
 
-        setupEmployeeFilters();
         loadEmployeeLeaves();
         
         // Refresh every 2 seconds
@@ -274,14 +272,7 @@ function updateEmployeeStats(leaves) {
     rejectedLeaves.textContent = leaves.filter(l => l.status === "Rejected").length;
 }
 
-function getFilteredEmployeeLeaves() {
-    return employeeDashboardState.leaves.filter(leave => {
-        return employeeDashboardState.statusFilter === "all" || leave.status.toLowerCase() === employeeDashboardState.statusFilter;
-    });
-}
-
 function renderEmployeeLeaves(leaves = employeeDashboardState.leaves) {
-    leaves = getFilteredEmployeeLeaves();
     const leaveList = document.getElementById("employeeLeaveList");
     if (!leaveList) return;
 
@@ -423,16 +414,7 @@ function renderManagerLeaves(leaves = managerDashboardState.leaves) {
 }
 
 function setupEmployeeFilters() {
-    const buttons = document.querySelectorAll("#employeeFilterButtons .filter-btn");
-
-    buttons.forEach(button => {
-        button.addEventListener("click", () => {
-            buttons.forEach(btn => btn.classList.remove("active"));
-            button.classList.add("active");
-            employeeDashboardState.statusFilter = button.dataset.filter;
-            renderEmployeeLeaves();
-        });
-    });
+    // Employee dashboard does not use status filter buttons.
 }
 
 function setupManagerFilters() {
