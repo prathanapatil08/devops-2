@@ -91,6 +91,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 const errorMessage = document.getElementById("errorMessage");
 
                 try {
+                    console.log("Login payload:", { email, password, role: selectedRole });
                     const res = await fetch("/login", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
@@ -101,9 +102,18 @@ document.addEventListener("DOMContentLoaded", function() {
                         })
                     });
 
-                    const data = await res.json();
+                    let data;
+                    try {
+                        data = await res.json();
+                    } catch (parseErr) {
+                        const text = await res.text();
+                        console.error("Login response parse error:", parseErr, text);
+                        throw new Error(text || res.statusText || "Login failed");
+                    }
 
-                    if (data.success) {
+                    console.log("Login response:", res.status, res.statusText, data);
+
+                    if (res.ok && data.success) {
                         localStorage.setItem("sessionId", data.session_id);
                         localStorage.setItem("userRole", data.role);
                         localStorage.setItem("userEmail", data.email);
@@ -113,13 +123,15 @@ document.addEventListener("DOMContentLoaded", function() {
                         } else {
                             window.location.href = "/employee-dashboard";
                         }
-                    } else {
-                        errorMessage.textContent = data.message;
-                        errorMessage.style.display = "block";
+                        return;
                     }
+
+                    const message = data && data.message ? data.message : (res.statusText || "Login failed");
+                    errorMessage.textContent = message;
+                    errorMessage.style.display = "block";
                 } catch (err) {
                     console.error("Login error:", err);
-                    errorMessage.textContent = "An error occurred. Please try again.";
+                    errorMessage.textContent = err.message || "An error occurred. Please try again.";
                     errorMessage.style.display = "block";
                 }
             });
@@ -200,6 +212,14 @@ document.addEventListener("DOMContentLoaded", function() {
         }
 
         setupEmployeeFilters();
+        loadEmployeeLeaves();
+        
+        // Refresh every 2 seconds
+        setInterval(() => {
+            loadEmployeeLeaves();
+        }, 2000);
+    }
+
     // Handle manager dashboard
     const managerDashboardStats = document.getElementById("managerTotalLeaves");
     if (managerDashboardStats) {
@@ -415,36 +435,74 @@ function renderManagerLeaves(leaves = managerDashboardState.leaves) {
 }
 
 function setupEmployeeFilters() {
-    const buttons = document.querySelectorAll("#employeeFilterButtons .filter-btn");
-
-    buttons.forEach(button => {
-        button.addEventListener("click", () => {
-            buttons.forEach(btn => btn.classList.remove("active"));
-            button.classList.add("active");
-            employeeDashboardState.statusFilter = button.dataset.filter;
+    const cards = document.querySelectorAll(".dashboard-stats .stat-card");
+    
+    cards.forEach((card, index) => {
+        card.style.cursor = "pointer";
+        card.addEventListener("click", () => {
+            // Remove active class from all cards
+            cards.forEach(c => c.classList.remove("active"));
+            // Add active to clicked card
+            card.classList.add("active");
+            
+            // Set filter based on position: 0=all, 1=pending, 2=approved, 3=rejected
+            if (index === 0) {
+                employeeDashboardState.statusFilter = "all";
+            } else if (index === 1) {
+                employeeDashboardState.statusFilter = "pending";
+            } else if (index === 2) {
+                employeeDashboardState.statusFilter = "approved";
+            } else if (index === 3) {
+                employeeDashboardState.statusFilter = "rejected";
+            }
             renderEmployeeLeaves();
         });
     });
+    
+    // Set "Total Requests" card as active by default
+    if (cards.length > 0) {
+        cards[0].classList.add("active");
+    }
 }
 
 function setupManagerFilters() {
-    const buttons = document.querySelectorAll("#managerFilterButtons .filter-btn");
-    const typeSelect = document.getElementById("managerTypeFilter");
-
-    buttons.forEach(button => {
-        button.addEventListener("click", () => {
-            buttons.forEach(btn => btn.classList.remove("active"));
-            button.classList.add("active");
-            managerDashboardState.statusFilter = button.dataset.filter;
+    const cards = document.querySelectorAll(".dashboard-stats .stat-card");
+    
+    cards.forEach((card, index) => {
+        card.style.cursor = "pointer";
+        card.addEventListener("click", () => {
+            // Remove active class from all cards
+            cards.forEach(c => c.classList.remove("active"));
+            // Add active to clicked card
+            card.classList.add("active");
+            
+            // Set filter based on position: 0=all, 1=pending, 2=approved, 3=rejected, 4=casual, 5=medical
+            if (index === 0) {
+                managerDashboardState.statusFilter = "all";
+                managerDashboardState.typeFilter = "all";
+            } else if (index === 1) {
+                managerDashboardState.statusFilter = "pending";
+                managerDashboardState.typeFilter = "all";
+            } else if (index === 2) {
+                managerDashboardState.statusFilter = "approved";
+                managerDashboardState.typeFilter = "all";
+            } else if (index === 3) {
+                managerDashboardState.statusFilter = "rejected";
+                managerDashboardState.typeFilter = "all";
+            } else if (index === 4) {
+                managerDashboardState.statusFilter = "all";
+                managerDashboardState.typeFilter = "casual";
+            } else if (index === 5) {
+                managerDashboardState.statusFilter = "all";
+                managerDashboardState.typeFilter = "medical";
+            }
             renderManagerLeaves();
         });
     });
-
-    if (typeSelect) {
-        typeSelect.addEventListener("change", () => {
-            managerDashboardState.typeFilter = typeSelect.value;
-            renderManagerLeaves();
-        });
+    
+    // Set "Total Requests" card as active by default
+    if (cards.length > 0) {
+        cards[0].classList.add("active");
     }
 }
 
